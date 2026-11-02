@@ -129,10 +129,14 @@ def test_sample_incident_files():
         event_types = set()
         for idx, ev in enumerate(lines):
             assert "type" in ev, f"Missing 'type' in {key}.jsonl line {idx}"
-            assert "seq" in ev and isinstance(ev["seq"], int), f"Missing integer 'seq' in {key}.jsonl line {idx}"
+            assert "seq" in ev and isinstance(ev["seq"], int), (
+                f"Missing integer 'seq' in {key}.jsonl line {idx}"
+            )
             assert "session_id" in ev, f"Missing 'session_id' in {key}.jsonl line {idx}"
             assert "hour" in ev, f"Missing 'hour' in {key}.jsonl line {idx}"
-            assert "ts_utc" in ev and bool(ev["ts_utc"]), f"Missing 'ts_utc' in {key}.jsonl line {idx}"
+            assert "ts_utc" in ev and bool(ev["ts_utc"]), (
+                f"Missing 'ts_utc' in {key}.jsonl line {idx}"
+            )
             event_types.add(ev["type"])
 
         # Must contain incident.detected, solution.updated, and options.ready
@@ -144,7 +148,9 @@ def test_sample_incident_files():
         options_ready = next(e for e in lines if e["type"] == "options.ready")
         me = options_ready.get("model_execution", {})
         assert me.get("cached") is True, f"model_execution.cached must be True in {key}.jsonl"
-        assert bool(me.get("cached_at_utc")), f"model_execution.cached_at_utc missing in {key}.jsonl"
+        assert bool(me.get("cached_at_utc")), (
+            f"model_execution.cached_at_utc missing in {key}.jsonl"
+        )
         assert bool(me.get("model")), f"model_execution.model missing in {key}.jsonl"
         assert bool(me.get("response_id")), f"model_execution.response_id missing in {key}.jsonl"
 
@@ -152,9 +158,15 @@ def test_sample_incident_files():
         assert len(opts) >= 2, f"Expected at least 2 options in {key}.jsonl, got {len(opts)}"
         opt_a, opt_b = opts[0], opts[1]
 
-        assert opt_a.get("validation", {}).get("passed") is True, f"Option A validation failed in {key}.jsonl"
-        assert opt_b.get("validation", {}).get("passed") is True, f"Option B validation failed in {key}.jsonl"
-        assert opt_a.get("tradeoff_tag") != opt_b.get("tradeoff_tag"), f"Options have identical tradeoff tags in {key}.jsonl"
+        assert opt_a.get("validation", {}).get("passed") is True, (
+            f"Option A validation failed in {key}.jsonl"
+        )
+        assert opt_b.get("validation", {}).get("passed") is True, (
+            f"Option B validation failed in {key}.jsonl"
+        )
+        assert opt_a.get("tradeoff_tag") != opt_b.get("tradeoff_tag"), (
+            f"Options have identical tradeoff tags in {key}.jsonl"
+        )
 
         # Check zero digits across all prose fields
         diag = options_ready.get("diagnosis_es", "")
@@ -172,7 +184,9 @@ def test_sample_incident_files():
                 assert not has_digits(delta), f"Digit found in agent thought delta ({key}): {delta}"
             elif ev["type"] == "agent.note":
                 note_text = ev.get("text_es", "")
-                assert not has_digits(note_text), f"Digit found in agent note text ({key}): {note_text}"
+                assert not has_digits(note_text), (
+                    f"Digit found in agent note text ({key}): {note_text}"
+                )
 
 
 def test_all_jsonl_files_in_library_pass_digit_free_and_cache_checks():

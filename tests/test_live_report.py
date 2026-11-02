@@ -11,6 +11,7 @@ from backend.live.report import render_session_report
 
 def test_live_session_report_generation_with_veto():
     """Test RIO report generation with operator apply followed by jury disruption and operator veto."""
+
     async def _run():
         session_id = "ses-rio-audit-001"
         session = LiveSession(session_id=session_id)
@@ -81,6 +82,7 @@ def test_live_session_report_generation_with_veto():
 
 def test_live_session_report_generation_with_autonomous_apply():
     """Test RIO report generation with autonomous decision (gemini_autonomous)."""
+
     async def _run():
         session_id = "ses-rio-auto-002"
         session = LiveSession(session_id=session_id)

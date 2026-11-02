@@ -92,15 +92,14 @@ def _encode_matrix(payload: bytes) -> list[list[int]]:
         for i in range(7, -1, -1):
             bits.append((pb >> i) & 1)
 
-    codewords = [
-        sum(bits[i * 8 + j] << (7 - j) for j in range(8))
-        for i in range(data_cw)
-    ]
+    codewords = [sum(bits[i * 8 + j] << (7 - j) for j in range(8)) for i in range(data_cw)]
 
     if ver == 6:
         b1, b2 = codewords[:68], codewords[68:]
         ec1, ec2 = _rs_encode(b1, ec_cw), _rs_encode(b2, ec_cw)
-        final_cw = [x for pair in zip(b1, b2) for x in pair] + [x for pair in zip(ec1, ec2) for x in pair]
+        final_cw = [x for pair in zip(b1, b2) for x in pair] + [
+            x for pair in zip(ec1, ec2) for x in pair
+        ]
     else:
         ec = _rs_encode(codewords, ec_cw)
         final_cw = codewords + ec
@@ -120,11 +119,7 @@ def _encode_matrix(payload: bytes) -> list[list[int]]:
                 r, c = r0 + dr, c0 + dc
                 if 0 <= r < size and 0 <= c < size:
                     if 0 <= dr <= 6 and 0 <= dc <= 6:
-                        on = (
-                            dr in (0, 6)
-                            or dc in (0, 6)
-                            or (2 <= dr <= 4 and 2 <= dc <= 4)
-                        )
+                        on = dr in (0, 6) or dc in (0, 6) or (2 <= dr <= 4 and 2 <= dc <= 4)
                         grid[r][c] = 1 if on else 0
                     else:
                         grid[r][c] = 0
@@ -223,6 +218,8 @@ def render_qr_svg(url: str) -> str:
             if val:
                 x = (c + quiet) * cell
                 y = (r + quiet) * cell
-                parts.append(f'<rect x="{x}" y="{y}" width="{cell}" height="{cell}" fill="#000000"/>')
+                parts.append(
+                    f'<rect x="{x}" y="{y}" width="{cell}" height="{cell}" fill="#000000"/>'
+                )
     parts.append("</svg>")
     return "".join(parts)

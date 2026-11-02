@@ -25,8 +25,12 @@ ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / "data" / "raw" / "cen-sip"
 HOST = "https://sipub.api.coordinador.cl"
 DROP_FIELDS = {
-    "email_distribuidor", "email_suministrador", "direccion_ditribuidor",
-    "direccion_suministrador", "rut_distribuidor", "rut_suministrador",
+    "email_distribuidor",
+    "email_suministrador",
+    "direccion_ditribuidor",
+    "direccion_suministrador",
+    "rut_distribuidor",
+    "rut_suministrador",
 }
 # v3 endpoints paginate with pageSize, v4 with limit.
 PAGE_PARAM = {"v3": "pageSize", "v4": "limit"}
@@ -92,8 +96,13 @@ def download(name, path, params, key, page_size=5000):
     for f in sorted(folder.glob("page-*.json.gz")):
         digest.update(gzip.decompress(f.read_bytes()))
     return {
-        "name": name, "endpoint": path, "params": params, "page_size": page_size,
-        "pages": total_pages, "rows": rows, "sha256_of_pages": digest.hexdigest(),
+        "name": name,
+        "endpoint": path,
+        "params": params,
+        "page_size": page_size,
+        "pages": total_pages,
+        "rows": rows,
+        "sha256_of_pages": digest.hexdigest(),
         "url_without_key": f"{HOST}{path}?{urlencode(params)}",
     }
 
@@ -106,11 +115,13 @@ def main():
     key = load_key(args.env_file)
     manifest_file = OUT / "manifest.json"
     manifest = json.loads(manifest_file.read_text()) if manifest_file.exists() else {"datasets": {}}
-    manifest.update({
-        "publisher": "Coordinador Eléctrico Nacional (SIP API)",
-        "documentation": "https://portal.api.coordinador.cl/documentacion?service=sipubv2",
-        "license": "Public data; attribution to Coordinador Eléctrico Nacional preserved. Contact fields removed.",
-    })
+    manifest.update(
+        {
+            "publisher": "Coordinador Eléctrico Nacional (SIP API)",
+            "documentation": "https://portal.api.coordinador.cl/documentacion?service=sipubv2",
+            "license": "Public data; attribution to Coordinador Eléctrico Nacional preserved. Contact fields removed.",
+        }
+    )
     for item in json.loads(Path(args.plan).read_text()):
         print(item["name"], flush=True)
         entry = download(item["name"], item["endpoint"], item.get("params", {}), key)

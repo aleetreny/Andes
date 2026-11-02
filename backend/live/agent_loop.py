@@ -16,7 +16,6 @@ from __future__ import annotations
 
 import concurrent.futures
 import copy
-import datetime as dt
 import os
 import re
 import sys
@@ -29,7 +28,7 @@ import httpx
 
 from agent.gemini_client import FORBIDDEN_ARGON_PARAMS, VALID_THINKING_LEVELS
 from optimisation import solve, validate
-from optimisation.scenario import ScenarioError, build_grid
+from optimisation.scenario import build_grid
 
 _ROOT_DIR = Path(__file__).resolve().parents[2]
 if "pytest" not in sys.modules and "PYTEST_CURRENT_TEST" not in os.environ:
@@ -108,7 +107,9 @@ def has_digits(text: str) -> bool:
     return bool(re.search(r"[\d₀₁₂₃₄₅₆₇₈₉⁰¹²³⁴⁵⁶⁷⁸⁹]", text or ""))
 
 
-def sanitize_no_digits(text: str | None, fallback: str = "Operational analysis verified by the coordinator.") -> str:
+def sanitize_no_digits(
+    text: str | None, fallback: str = "Operational analysis verified by the coordinator."
+) -> str:
     """Guarantee zero digits in Gemini/agent prose fields per Section 3 Rule 1."""
     if not text or not isinstance(text, str):
         cleaned = fallback
@@ -117,7 +118,9 @@ def sanitize_no_digits(text: str | None, fallback: str = "Operational analysis v
         for pattern, repl in TOKEN_REPLACEMENTS:
             cleaned = pattern.sub(repl, cleaned)
         # Strip any remaining numbers (including decimals/separators attached to digits)
-        cleaned = re.sub(r"[\d₀₁₂₃₄₅₆₇₈₉⁰¹²³⁴⁵⁶⁷⁸⁹]+([.,:/-][\d₀₁₂₃₄₅₆₇₈₉⁰¹²³⁴⁵⁶⁷⁸⁹]+)*", "", cleaned)
+        cleaned = re.sub(
+            r"[\d₀₁₂₃₄₅₆₇₈₉⁰¹²³⁴⁵⁶⁷⁸⁹]+([.,:/-][\d₀₁₂₃₄₅₆₇₈₉⁰¹²³⁴⁵⁶⁷⁸⁹]+)*", "", cleaned
+        )
         # Clean leftover dangling unit fragments or double spaces
         cleaned = re.sub(r"\s+", " ", cleaned)
         cleaned = re.sub(r"\(\s*\)", "", cleaned)
@@ -155,11 +158,7 @@ def get_fast_model() -> str:
 
 
 def get_api_key() -> str:
-    return (
-        os.getenv("GEMINI_API_KEY")
-        or os.getenv("GOOGLE_API_KEY")
-        or ""
-    ).strip()
+    return (os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY") or "").strip()
 
 
 def prepare_scenario_and_events(
@@ -289,7 +288,9 @@ def to_contract_solution(
     """Convert raw `optimisation.solve` and `validate` outputs into a contract `Solution`."""
     T = len(scenario.get("timestamps_utc", [])) or 24
     nodes = [n["id"] for n in scenario.get("nodes", [])]
-    hh_per_mw = {n["id"]: float(n.get("households_per_mw", 1000.0)) for n in scenario.get("nodes", [])}
+    hh_per_mw = {
+        n["id"]: float(n.get("households_per_mw", 1000.0)) for n in scenario.get("nodes", [])
+    }
 
     if raw_sol.get("status") != "optimal" or not raw_sol.get("timeseries"):
         zero_nodes = {nid: [0.0] * T for nid in nodes}
@@ -298,17 +299,23 @@ def to_contract_solution(
             "generation_mw": {g["id"]: [0.0] * T for g in scenario.get("generators", [])},
             "available_mw": {g["id"]: [0.0] * T for g in scenario.get("generators", [])},
             "line_flow_mw": {ln["id"]: [0.0] * T for ln in scenario.get("lines", [])},
-            "line_capacity_mw": {ln["id"]: [float(ln["capacity_mw"])] * T for ln in scenario.get("lines", [])},
+            "line_capacity_mw": {
+                ln["id"]: [float(ln["capacity_mw"])] * T for ln in scenario.get("lines", [])
+            },
             "battery_flow_mw": {b["id"]: [0.0] * T for b in scenario.get("batteries", [])},
             "battery_soc_mwh": {b["id"]: [0.0] * T for b in scenario.get("batteries", [])},
-            "demand_mw": {nid: [float(x) for x in scenario["demand_mw_by_node"][nid]] for nid in nodes},
+            "demand_mw": {
+                nid: [float(x) for x in scenario["demand_mw_by_node"][nid]] for nid in nodes
+            },
             "unserved_mw": zero_nodes,
             "demand_response_mw": zero_nodes,
             "curtailment_mw": {g["id"]: [0.0] * T for g in scenario.get("generators", [])},
             "households_off": zero_nodes,
             "cost_proxy_usd": [0.0] * T,
             "co2_t": [0.0] * T,
-            "status": raw_sol.get("status", "error") if raw_sol.get("status") in ("optimal", "infeasible", "error") else "error",
+            "status": raw_sol.get("status", "error")
+            if raw_sol.get("status") in ("optimal", "infeasible", "error")
+            else "error",
             "validation": {
                 "passed": False,
                 "violations": [str(raw_sol.get("message") or "infeasible_or_error")],
@@ -333,7 +340,10 @@ def to_contract_solution(
                 elif mc.get("type") == "uprate_line":
                     mc.pop("previous_capacity_mw", None)
                 clean_mods.append(mc)
-            cand = {"candidate_id": raw_sol.get("candidate_id", "cand"), "modifications": clean_mods}
+            cand = {
+                "candidate_id": raw_sol.get("candidate_id", "cand"),
+                "modifications": clean_mods,
+            }
         eff_grid = build_grid(
             scenario,
             cand,
@@ -380,18 +390,15 @@ def to_contract_solution(
             curtailment_mw[gid] = [0.0] * T
 
     unserved_mw = {
-        nid: [round(float(x), 4) for x in ts["unserved_mw"].get(nid, [0.0] * T)]
-        for nid in nodes
+        nid: [round(float(x), 4) for x in ts["unserved_mw"].get(nid, [0.0] * T)] for nid in nodes
     }
     raw_dr = ts.get("demand_response_mw") or {}
     demand_response_mw = {
-        nid: [round(float(x), 4) for x in raw_dr.get(nid, [0.0] * T)]
-        for nid in nodes
+        nid: [round(float(x), 4) for x in raw_dr.get(nid, [0.0] * T)] for nid in nodes
     }
     # Single household formula: households_off(node, hour) = unserved_mw(node, hour) * households_per_mw(node)
     households_off = {
-        nid: [round(unserved_mw[nid][h] * hh_per_mw[nid]) for h in range(T)]
-        for nid in nodes
+        nid: [round(unserved_mw[nid][h] * hh_per_mw[nid]) for h in range(T)] for nid in nodes
     }
 
     # Hourly operational cost proxy (dispatchable fuel/water cost + demand response compensation)
@@ -420,14 +427,20 @@ def to_contract_solution(
     if isinstance(co2_by_hour, list) and len(co2_by_hour) == T:
         co2_t = [round(float(x), 4) for x in co2_by_hour]
     else:
-        ef_map = scenario.get("emission_factors_t_per_mwh") or {"gas": 0.4, "coal": 0.95, "diesel": 0.75}
+        ef_map = scenario.get("emission_factors_t_per_mwh") or {
+            "gas": 0.4,
+            "coal": 0.95,
+            "diesel": 0.75,
+        }
         co2_t = []
         for h in range(T):
             e_h = 0.0
             for g in scenario.get("generators", []):
                 gid = g["id"]
                 tech = str(g.get("technology", "")).lower()
-                e_h += float(ts["generation_mw"].get(gid, [0.0] * T)[h]) * float(ef_map.get(tech, 0.0))
+                e_h += float(ts["generation_mw"].get(gid, [0.0] * T)[h]) * float(
+                    ef_map.get(tech, 0.0)
+                )
             co2_t.append(round(e_h, 4))
 
     violations_str = [
@@ -439,13 +452,17 @@ def to_contract_solution(
 
     return {
         "solution_id": solution_id,
-        "generation_mw": {k: [round(float(x), 4) for x in v] for k, v in ts["generation_mw"].items()},
+        "generation_mw": {
+            k: [round(float(x), 4) for x in v] for k, v in ts["generation_mw"].items()
+        },
         "available_mw": {k: [round(float(x), 4) for x in v] for k, v in ts["available_mw"].items()},
         "line_flow_mw": {k: [round(float(x), 4) for x in v] for k, v in ts["line_flow_mw"].items()},
         "line_capacity_mw": line_cap_mw,
         "battery_flow_mw": battery_flow_mw,
         "battery_soc_mwh": battery_soc_mwh,
-        "demand_mw": {nid: [round(float(x), 4) for x in scenario["demand_mw_by_node"][nid]] for nid in nodes},
+        "demand_mw": {
+            nid: [round(float(x), 4) for x in scenario["demand_mw_by_node"][nid]] for nid in nodes
+        },
         "unserved_mw": unserved_mw,
         "demand_response_mw": demand_response_mw,
         "curtailment_mw": curtailment_mw,
@@ -469,14 +486,8 @@ def compute_incident_impact(solution: dict[str, Any]) -> dict[str, Any]:
     """Compute incident impact summary from the no-action incident Solution."""
     T = len(solution.get("cost_proxy_usd", [])) or 24
     nodes = list(solution.get("unserved_mw", {}).keys())
-    unserved_by_h = [
-        sum(float(solution["unserved_mw"][n][h]) for n in nodes)
-        for h in range(T)
-    ]
-    hh_by_h = [
-        sum(float(solution["households_off"][n][h]) for n in nodes)
-        for h in range(T)
-    ]
+    unserved_by_h = [sum(float(solution["unserved_mw"][n][h]) for n in nodes) for h in range(T)]
+    hh_by_h = [sum(float(solution["households_off"][n][h]) for n in nodes) for h in range(T)]
     unserved_peak = round(max(unserved_by_h, default=0.0), 2)
     hh_peak = int(round(max(hh_by_h, default=0.0)))
     nodes_affected = [
@@ -507,13 +518,16 @@ def compute_grid_state(
     """Compute NTSyCS GridState: 'normal' | 'alerta' | 'emergencia' | 'recuperacion'."""
     impact = compute_incident_impact(solution)
     total_unserved_mwh = sum(
-        sum(float(x) for x in vals)
-        for vals in solution.get("unserved_mw", {}).values()
+        sum(float(x) for x in vals) for vals in solution.get("unserved_mw", {}).values()
     )
     if not active_events and total_unserved_mwh <= 1e-3 and not impact["lines_overloaded"]:
         return "normal"
     if has_applied_plan:
-        if baseline_unserved_mwh is None or total_unserved_mwh < baseline_unserved_mwh - 1e-3 or total_unserved_mwh <= 1e-3:
+        if (
+            baseline_unserved_mwh is None
+            or total_unserved_mwh < baseline_unserved_mwh - 1e-3
+            or total_unserved_mwh <= 1e-3
+        ):
             return "recuperacion"
     if total_unserved_mwh > 1e-3:
         return "emergencia" if not has_applied_plan else "recuperacion"
@@ -660,11 +674,7 @@ def generate_operational_candidates(
         for b in scenario.get("batteries", [])
         if b.get("standby") and b["id"] not in outaged_ids
     ]
-    active_lines = [
-        ln["id"]
-        for ln in scenario.get("lines", [])
-        if ln["id"] not in outaged_ids
-    ]
+    active_lines = [ln["id"] for ln in scenario.get("lines", []) if ln["id"] not in outaged_ids]
     has_hydro = any(
         g["id"] == "hydro_sur" and g["id"] not in outaged_ids
         for g in scenario.get("generators", [])
@@ -909,7 +919,9 @@ def find_truthful_tag_pair(
 
     def is_strict(tag: str, m_self: dict[str, Any], m_other: dict[str, Any]) -> bool:
         if tag == "max_hogares":
-            return float(m_self["households_reconnected"]) > float(m_other["households_reconnected"])
+            return float(m_self["households_reconnected"]) > float(
+                m_other["households_reconnected"]
+            )
         if tag == "min_costo":
             return float(m_self["cost_delta_usd"]) < float(m_other["cost_delta_usd"])
         if tag == "min_co2":
@@ -997,7 +1009,10 @@ def select_distinct_pair_and_tags(
             if max_avail_hh > 0 and float(chosen[0]["metrics"]["households_reconnected"]) <= 0:
                 chosen = []
             # Never keep a pair where one is strictly dominated on all 4 metrics by the other
-            elif len(chosen) == 2 and find_truthful_tag_pair(chosen[0]["metrics"], chosen[1]["metrics"]) is None:
+            elif (
+                len(chosen) == 2
+                and find_truthful_tag_pair(chosen[0]["metrics"], chosen[1]["metrics"]) is None
+            ):
                 chosen = [chosen[0]]
 
     if len(chosen) < 2:
@@ -1037,7 +1052,10 @@ def select_distinct_pair_and_tags(
             # Prefer a contrasting option that also reconnects > 0 households when possible
             also_reconnects = (
                 0.0
-                if (float(ma_first["households_reconnected"]) > 0 and float(mc["households_reconnected"]) > 0)
+                if (
+                    float(ma_first["households_reconnected"]) > 0
+                    and float(mc["households_reconnected"]) > 0
+                )
                 else 1.0
             )
             types_a = {lv["type"] for lv in first["levers"]}
@@ -1055,7 +1073,9 @@ def select_distinct_pair_and_tags(
         chosen.append(remaining_sorted[0])
 
     # Always order cand_a, cand_b so cand_a has >= households_reconnected
-    if float(chosen[1]["metrics"]["households_reconnected"]) > float(chosen[0]["metrics"]["households_reconnected"]):
+    if float(chosen[1]["metrics"]["households_reconnected"]) > float(
+        chosen[0]["metrics"]["households_reconnected"]
+    ):
         chosen[0], chosen[1] = chosen[1], chosen[0]
 
     cand_a, cand_b = chosen[0], chosen[1]
@@ -1084,9 +1104,7 @@ def select_distinct_pair_and_tags(
     return cand_a, cand_b, tag_a, tag_b
 
 
-NO_IMPROVEMENT_DIAGNOSIS_ES = (
-    "No available operating move improves the residential shortfall under the current grid constraints."
-)
+NO_IMPROVEMENT_DIAGNOSIS_ES = "No available operating move improves the residential shortfall under the current grid constraints."
 
 
 def enforce_option_pair_guardrails(
@@ -1114,9 +1132,16 @@ def enforce_option_pair_guardrails(
         if float(mb["households_reconnected"]) > float(ma["households_reconnected"]):
             opt_a, opt_b = opt_b, opt_a
             ma, mb = opt_a["metrics"], opt_b["metrics"]
-            tag_a, tag_b = opt_a.get("tradeoff_tag", "max_hogares"), opt_b.get("tradeoff_tag", "min_costo")
+            tag_a, tag_b = (
+                opt_a.get("tradeoff_tag", "max_hogares"),
+                opt_b.get("tradeoff_tag", "min_costo"),
+            )
 
-        if tag_a == tag_b or not is_tag_truthful(tag_a, ma, mb) or not is_tag_truthful(tag_b, mb, ma):
+        if (
+            tag_a == tag_b
+            or not is_tag_truthful(tag_a, ma, mb)
+            or not is_tag_truthful(tag_b, mb, ma)
+        ):
             tp = find_truthful_tag_pair(ma, mb)
             if tp is not None:
                 opt_a["tradeoff_tag"], opt_b["tradeoff_tag"] = tp
@@ -1216,14 +1241,8 @@ def build_default_diagnosis_es(
     impact: dict[str, Any],
 ) -> str:
     """Build a digit-free English diagnosis of the active crisis."""
-    assets = [
-        ASSET_NAMES_ES.get(str(d.get("asset_id")), "main asset")
-        for d in active_disruptions
-    ]
-    nodes = [
-        NODE_NAMES_ES.get(nid, "system zone")
-        for nid in impact.get("nodes_affected", [])
-    ]
+    assets = [ASSET_NAMES_ES.get(str(d.get("asset_id")), "main asset") for d in active_disruptions]
+    nodes = [NODE_NAMES_ES.get(nid, "system zone") for nid in impact.get("nodes_affected", [])]
     asset_phrase = " and ".join(assets) if assets else "a trunk element"
     if nodes:
         node_phrase = ", ".join(nodes)
@@ -1247,13 +1266,9 @@ def build_default_thought_es(
 ) -> str:
     """Build a concrete, asset-specific, digit-free English thought."""
     assets = [
-        ASSET_NAMES_ES.get(str(d.get("asset_id")), "system asset")
-        for d in active_disruptions
+        ASSET_NAMES_ES.get(str(d.get("asset_id")), "system asset") for d in active_disruptions
     ]
-    nodes = [
-        NODE_NAMES_ES.get(nid, "affected zone")
-        for nid in impact.get("nodes_affected", [])
-    ]
+    nodes = [NODE_NAMES_ES.get(nid, "affected zone") for nid in impact.get("nodes_affected", [])]
     asset_phrase = " and ".join(assets) if assets else "the affected asset"
     zone_phrase = ", ".join(nodes) if nodes else "the trunk corridor"
     sum_a = summarize_levers_es(cand_a["levers"])
@@ -1543,12 +1558,16 @@ def run_incident_evaluation(
                 "call_id": cid_call,
                 "tool": "simulate_plan",
                 "args_summary_es": c["args_summary_es"],
-                "status": "pass" if c.get("passed") else ("infeasible" if c.get("status") == "infeasible" else "fail"),
+                "status": "pass"
+                if c.get("passed")
+                else ("infeasible" if c.get("status") == "infeasible" else "fail"),
                 "duration_ms": c.get("duration_ms", 12.0),
                 "result_summary": {
                     "candidate_id": c["candidate_id"],
                     "passed": bool(c.get("passed")),
-                    "households_reconnected": int(c.get("metrics", {}).get("households_reconnected", 0)),
+                    "households_reconnected": int(
+                        c.get("metrics", {}).get("households_reconnected", 0)
+                    ),
                     "cost_delta_usd": float(c.get("metrics", {}).get("cost_delta_usd", 0.0)),
                 },
             }
@@ -1564,7 +1583,15 @@ def run_incident_evaluation(
             passed_candidates.append(
                 {
                     "candidate_id": f"fallback_{suffix}",
-                    "levers": [{"type": ltype, "target_id": tid, "params": {}, "from_hour": from_hour, "to_hour": to_hour}],
+                    "levers": [
+                        {
+                            "type": ltype,
+                            "target_id": tid,
+                            "params": {},
+                            "from_hour": from_hour,
+                            "to_hour": to_hour,
+                        }
+                    ],
                     "passed": True,
                     "status": "optimal",
                     "duration_ms": 10.0,
@@ -1572,7 +1599,15 @@ def run_incident_evaluation(
                     "validation": base_sol["validation"],
                     "solution": base_sol,
                     "args_summary_es": summarize_levers_es(
-                        [{"type": ltype, "target_id": tid, "params": {}, "from_hour": from_hour, "to_hour": to_hour}]
+                        [
+                            {
+                                "type": ltype,
+                                "target_id": tid,
+                                "params": {},
+                                "from_hour": from_hour,
+                                "to_hour": to_hour,
+                            }
+                        ]
                     ),
                 }
             )
@@ -1692,8 +1727,12 @@ def run_incident_evaluation(
                             call_id = f"call_insp_{uuid.uuid4().hex[:5]}"
                             node_summary = {
                                 "node_id": nid,
-                                "unserved_mw_peak": max(base_sol["unserved_mw"].get(nid, [0.0]), default=0.0),
-                                "households_off_peak": max(base_sol["households_off"].get(nid, [0]), default=0),
+                                "unserved_mw_peak": max(
+                                    base_sol["unserved_mw"].get(nid, [0.0]), default=0.0
+                                ),
+                                "households_off_peak": max(
+                                    base_sol["households_off"].get(nid, [0]), default=0
+                                ),
                             }
                             emit_tool_call(
                                 {
@@ -1708,7 +1747,12 @@ def run_incident_evaluation(
                                 }
                             )
                             fn_responses.append(
-                                {"functionResponse": {"name": "inspect_node", "response": node_summary}}
+                                {
+                                    "functionResponse": {
+                                        "name": "inspect_node",
+                                        "response": node_summary,
+                                    }
+                                }
                             )
                         elif fn_name == "simulate_plan" and extra_sim_calls < 3:
                             extra_sim_calls += 1
@@ -1792,9 +1836,7 @@ def run_incident_evaluation(
     )
 
     if not emitted_thoughts:
-        _emit_unique_thought(
-            build_default_thought_es(active_disruptions, impact, cand_a, cand_b)
-        )
+        _emit_unique_thought(build_default_thought_es(active_disruptions, impact, cand_a, cand_b))
 
     # Map Gemini's titles and rationales by candidate_id so swapping cand_a/cand_b preserves the exact text for each option
     title_by_cid: dict[str, str] = {}
@@ -1818,10 +1860,14 @@ def run_incident_evaluation(
         proposal.get("title_b_es") if isinstance(proposal, dict) and not title_by_cid else None
     )
     raw_rat_a = rationale_by_cid.get(cand_a["candidate_id"]) or (
-        proposal.get("rationale_a_es") if isinstance(proposal, dict) and not rationale_by_cid else None
+        proposal.get("rationale_a_es")
+        if isinstance(proposal, dict) and not rationale_by_cid
+        else None
     )
     raw_rat_b = rationale_by_cid.get(cand_b["candidate_id"]) or (
-        proposal.get("rationale_b_es") if isinstance(proposal, dict) and not rationale_by_cid else None
+        proposal.get("rationale_b_es")
+        if isinstance(proposal, dict) and not rationale_by_cid
+        else None
     )
 
     title_a = sanitize_no_digits(

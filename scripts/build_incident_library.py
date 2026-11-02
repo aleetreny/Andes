@@ -24,11 +24,9 @@ from __future__ import annotations
 
 import argparse
 import asyncio
-import copy
 import datetime as dt
 import json
 import os
-import re
 import sys
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
@@ -37,14 +35,13 @@ from typing import Any
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from backend.live.agent_loop import (
+from backend.live.agent_loop import (  # noqa: E402
     OPERATIONAL_LEVER_TYPES,
     has_digits,
     is_tag_truthful,
     sanitize_no_digits,
 )
-from backend.live.catalog import build_catalog
-from backend.live.engine import LiveSession
+from backend.live.engine import LiveSession  # noqa: E402
 
 HOURS = [9, 12, 13, 18, 19, 20]
 DURATION_H = 4
@@ -159,7 +156,9 @@ def enforce_digit_free_and_cached(events: list[dict[str, Any]], asset_key: str, 
                 raw_r = opt.get("rationale_es", "")
                 if has_digits(raw_r):
                     opt["rationale_es"] = sanitize_no_digits(raw_r)
-                assert not has_digits(opt["rationale_es"]), f"Digit in option rationale: {opt['rationale_es']}"
+                assert not has_digits(opt["rationale_es"]), (
+                    f"Digit in option rationale: {opt['rationale_es']}"
+                )
 
                 for lv in opt.get("levers", []):
                     assert lv.get("type") in OPERATIONAL_LEVER_TYPES, (
@@ -167,7 +166,9 @@ def enforce_digit_free_and_cached(events: list[dict[str, Any]], asset_key: str, 
                     )
 
             opt_a, opt_b = opts[0], opts[1]
-            assert opt_a["tradeoff_tag"] != opt_b["tradeoff_tag"], f"Duplicate tags in {asset_key}_{hour}"
+            assert opt_a["tradeoff_tag"] != opt_b["tradeoff_tag"], (
+                f"Duplicate tags in {asset_key}_{hour}"
+            )
             assert is_tag_truthful(opt_a["tradeoff_tag"], opt_a["metrics"], opt_b["metrics"]), (
                 f"Untruthful tag_a {opt_a['tradeoff_tag']} in {asset_key}_{hour}: {opt_a['metrics']} vs {opt_b['metrics']}"
             )
@@ -195,6 +196,7 @@ def generate_single_incident(
     allow_live: bool = False,
 ) -> tuple[dict[str, Any], list[dict[str, Any]]]:
     """Run in-memory LiveSession and record full event stream for single asset disruption."""
+
     async def _run() -> tuple[dict[str, Any], list[dict[str, Any]]]:
         max_attempts = 3 if allow_live else 1
         events: list[dict[str, Any]] = []
@@ -234,9 +236,11 @@ def generate_single_incident(
         if allow_live:
             options_ev = next(e for e in events if e["type"] == "options.ready")
             me = options_ev["model_execution"]
-            assert me.get("status") == "ok" and me.get("model") != "deterministic-planner" and not str(me.get("response_id", "")).startswith("det-"), (
-                f"Live Gemini required for {asset_id}_{hour}, got {me}"
-            )
+            assert (
+                me.get("status") == "ok"
+                and me.get("model") != "deterministic-planner"
+                and not str(me.get("response_id", "")).startswith("det-")
+            ), f"Live Gemini required for {asset_id}_{hour}, got {me}"
 
         enforce_digit_free_and_cached(events, asset_id, hour)
 
@@ -281,7 +285,7 @@ def generate_combo_incident(
             q = ses.subscribe()
 
             # Stack disruptions
-            res1 = await ses.disrupt(
+            await ses.disrupt(
                 assets[0],
                 duration_h=DURATION_H,
                 from_hour_override=hour,
@@ -318,9 +322,11 @@ def generate_combo_incident(
         if allow_live:
             options_ev = next(e for e in events if e["type"] == "options.ready")
             me = options_ev["model_execution"]
-            assert me.get("status") == "ok" and me.get("model") != "deterministic-planner" and not str(me.get("response_id", "")).startswith("det-"), (
-                f"Live Gemini required for {combo_key}, got {me}"
-            )
+            assert (
+                me.get("status") == "ok"
+                and me.get("model") != "deterministic-planner"
+                and not str(me.get("response_id", "")).startswith("det-")
+            ), f"Live Gemini required for {combo_key}, got {me}"
 
         enforce_digit_free_and_cached(events, combo_key, hour)
 
@@ -376,20 +382,30 @@ def build_library(
         for h in HOURS:
             tasks_single.append((asset, h))
 
-    print(f"Generating {len(tasks_single)} single-asset incidents ({len(CORE_ASSETS)} assets × {len(HOURS)} hours)...")
+    print(
+        f"Generating {len(tasks_single)} single-asset incidents ({len(CORE_ASSETS)} assets × {len(HOURS)} hours)..."
+    )
     if live_all:
         os.environ.setdefault("GRIDPILOT_GEMINI_TIMEOUT_S", "22.0")
 
-    def _worker_single(item: tuple[str, int]) -> tuple[str, int, dict[str, Any], list[dict[str, Any]]]:
+    def _worker_single(
+        item: tuple[str, int],
+    ) -> tuple[str, int, dict[str, Any], list[dict[str, Any]]]:
         asset, h = item
         file_key = f"{asset}_{h}"
         jsonl_path = out_dir / f"{file_key}.jsonl"
         allow_live = bool(live_all and os.getenv("GEMINI_API_KEY"))
         if allow_live and jsonl_path.is_file():
             try:
-                existing_evs = [json.loads(line) for line in jsonl_path.read_text(encoding="utf-8").splitlines() if line.strip()]
+                existing_evs = [
+                    json.loads(line)
+                    for line in jsonl_path.read_text(encoding="utf-8").splitlines()
+                    if line.strip()
+                ]
                 opt_ev = next((e for e in existing_evs if e.get("type") == "options.ready"), None)
-                inc_ev = next((e for e in existing_evs if e.get("type") == "incident.detected"), None)
+                inc_ev = next(
+                    (e for e in existing_evs if e.get("type") == "incident.detected"), None
+                )
                 if opt_ev and inc_ev:
                     me = opt_ev.get("model_execution", {})
                     if (
@@ -432,7 +448,10 @@ def build_library(
             if canonical_key in index_data["incidents"]:
                 canonical_path = out_dir / f"{canonical_key}.jsonl"
                 alias_path = out_dir / f"{alias_key}.jsonl"
-                with open(canonical_path, "r", encoding="utf-8") as f_in, open(alias_path, "w", encoding="utf-8") as f_out:
+                with (
+                    open(canonical_path, "r", encoding="utf-8") as f_in,
+                    open(alias_path, "w", encoding="utf-8") as f_out,
+                ):
                     f_out.write(f_in.read())
 
                 alias_meta = dict(index_data["incidents"][canonical_key])
@@ -443,7 +462,9 @@ def build_library(
     print("Generating multi-failure combos...")
     for combo in COMBOS:
         combo_key = combo["key"]
-        meta, evs = generate_combo_incident(combo, allow_live=bool(live_all and os.getenv("GEMINI_API_KEY")))
+        meta, evs = generate_combo_incident(
+            combo, allow_live=bool(live_all and os.getenv("GEMINI_API_KEY"))
+        )
         jsonl_path = out_dir / f"{combo_key}.jsonl"
         write_jsonl(jsonl_path, evs)
         index_data["combos"][combo_key] = meta
@@ -452,7 +473,10 @@ def build_library(
         # Write combo aliases if any
         for calias in combo.get("aliases", []):
             calias_path = out_dir / f"{calias}.jsonl"
-            with open(jsonl_path, "r", encoding="utf-8") as f_in, open(calias_path, "w", encoding="utf-8") as f_out:
+            with (
+                open(jsonl_path, "r", encoding="utf-8") as f_in,
+                open(calias_path, "w", encoding="utf-8") as f_out,
+            ):
                 f_out.write(f_in.read())
             calias_meta = dict(meta)
             calias_meta["file"] = f"/incidents/{calias}.jsonl"
@@ -469,11 +493,25 @@ def build_library(
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Build offline incident library for GridPilot Live Ops")
-    parser.add_argument("--fast", action="store_true", default=True, help="Fast generation with deterministic solver")
+    parser = argparse.ArgumentParser(
+        description="Build offline incident library for GridPilot Live Ops"
+    )
+    parser.add_argument(
+        "--fast",
+        action="store_true",
+        default=True,
+        help="Fast generation with deterministic solver",
+    )
     parser.add_argument("--full", action="store_true", default=False, help="Generate full catalog")
-    parser.add_argument("--live-all", action="store_true", default=False, help="Call live Gemini model for all sessions")
-    parser.add_argument("--workers", type=int, default=6, help="Worker threads for parallel LP generation")
+    parser.add_argument(
+        "--live-all",
+        action="store_true",
+        default=False,
+        help="Call live Gemini model for all sessions",
+    )
+    parser.add_argument(
+        "--workers", type=int, default=6, help="Worker threads for parallel LP generation"
+    )
     parser.add_argument(
         "--out-dir",
         type=Path,

@@ -29,9 +29,9 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from backend.live.agent_loop import OPERATIONAL_LEVER_TYPES, has_digits, is_tag_truthful
-from backend.live.engine import LiveSession
-from backend.live.report import render_session_report
+from backend.live.agent_loop import OPERATIONAL_LEVER_TYPES, has_digits, is_tag_truthful  # noqa: E402
+from backend.live.engine import LiveSession  # noqa: E402
+from backend.live.report import render_session_report  # noqa: E402
 
 TEN_BENCHMARK_FAILURES: list[tuple[str, int, str]] = [
     ("gas_centro", 18, "Caída ciclo combinado Nehuenco en rampa vespertina"),
@@ -54,7 +54,9 @@ async def measure_single_failure(
     desc: str = "",
 ) -> dict[str, Any]:
     for attempt in range(4):
-        session = LiveSession(session_id=f"bench-{thinking_level}-{asset_id}-{hour}-{attempt}", start_hour=float(hour))
+        session = LiveSession(
+            session_id=f"bench-{thinking_level}-{asset_id}-{hour}-{attempt}", start_hour=float(hour)
+        )
         q = session.subscribe()
         # Drain initial snapshot
         await asyncio.wait_for(q.get(), timeout=2.0)
@@ -72,7 +74,11 @@ async def measure_single_failure(
             elapsed_ms = (time.perf_counter() - t0) * 1000.0
             if ev["type"] == "incident.detected" and t_incident_ms is None:
                 t_incident_ms = elapsed_ms
-            elif ev["type"] == "solution.updated" and ev.get("reason") == "incident" and t_solution_ms is None:
+            elif (
+                ev["type"] == "solution.updated"
+                and ev.get("reason") == "incident"
+                and t_solution_ms is None
+            ):
                 t_solution_ms = elapsed_ms
             elif ev["type"] == "options.ready":
                 t_options_ms = elapsed_ms
@@ -95,7 +101,10 @@ async def measure_single_failure(
                 flush=True,
             )
             break
-        print(f"    [{thinking_level}] {asset_id}@{hour} attempt {attempt+1} status={me.get('status')}, retrying...", flush=True)
+        print(
+            f"    [{thinking_level}] {asset_id}@{hour} attempt {attempt + 1} status={me.get('status')}, retrying...",
+            flush=True,
+        )
         await asyncio.sleep(1.5 * (attempt + 1))
 
     assert t_incident_ms < 300.0, f"incident.detected took {t_incident_ms:.1f} ms (>= 300 ms)"
@@ -168,7 +177,9 @@ async def run_latency_benchmark() -> tuple[list[dict[str, Any]], list[dict[str, 
 
     sem = asyncio.Semaphore(3)
 
-    async def _run_with_sem(asset_id: str, hour: int, thinking_level: str, desc: str) -> dict[str, Any]:
+    async def _run_with_sem(
+        asset_id: str, hour: int, thinking_level: str, desc: str
+    ) -> dict[str, Any]:
         async with sem:
             return await measure_single_failure(asset_id, hour, thinking_level, desc)
 
@@ -179,7 +190,10 @@ async def run_latency_benchmark() -> tuple[list[dict[str, Any]], list[dict[str, 
         os.environ["GRIDPILOT_GEMINI_TIMEOUT_S"] = "18.0"
         med_rows = list(
             await asyncio.gather(
-                *[_run_with_sem(asset_id, hour, "low", desc) for asset_id, hour, desc in TEN_BENCHMARK_FAILURES]
+                *[
+                    _run_with_sem(asset_id, hour, "low", desc)
+                    for asset_id, hour, desc in TEN_BENCHMARK_FAILURES
+                ]
             )
         )
     finally:
@@ -236,7 +250,9 @@ async def run_twenty_random_incidents() -> list[dict[str, Any]]:
                 assert not has_digits(ev["delta"]), f"Digit found in agent.thought: {ev['delta']}"
                 prose_checked += 1
             elif etype == "agent.tool_call":
-                assert not has_digits(ev["args_summary_es"]), f"Digit found in args_summary_es: {ev['args_summary_es']}"
+                assert not has_digits(ev["args_summary_es"]), (
+                    f"Digit found in args_summary_es: {ev['args_summary_es']}"
+                )
                 prose_checked += 1
             elif etype == "agent.note":
                 assert not has_digits(ev["text_es"]), f"Digit found in agent.note: {ev['text_es']}"
@@ -245,7 +261,9 @@ async def run_twenty_random_incidents() -> list[dict[str, Any]]:
                 options_ev = ev
 
         assert options_ev is not None
-        assert not has_digits(options_ev["diagnosis_es"]), f"Digit in diagnosis_es: {options_ev['diagnosis_es']}"
+        assert not has_digits(options_ev["diagnosis_es"]), (
+            f"Digit in diagnosis_es: {options_ev['diagnosis_es']}"
+        )
         if os.environ.get("GEMINI_API_KEY"):
             me = options_ev["model_execution"]
             assert me["status"] == "ok" and me["model"] == "gemini-4-argon"
@@ -254,23 +272,31 @@ async def run_twenty_random_incidents() -> list[dict[str, Any]]:
         opts = options_ev["options"]
         assert len(opts) == 2, f"Expected 2 options, got {len(opts)}"
         for opt in opts:
-            assert opt["validation"]["passed"] is True, f"Option failed validator: {opt['validation']}"
+            assert opt["validation"]["passed"] is True, (
+                f"Option failed validator: {opt['validation']}"
+            )
             assert not has_digits(opt["title_es"]), f"Digit in title_es: {opt['title_es']}"
-            assert not has_digits(opt["rationale_es"]), f"Digit in rationale_es: {opt['rationale_es']}"
+            assert not has_digits(opt["rationale_es"]), (
+                f"Digit in rationale_es: {opt['rationale_es']}"
+            )
             prose_checked += 2
 
         tag_0 = opts[0]["tradeoff_tag"]
         tag_1 = opts[1]["tradeoff_tag"]
-        assert tag_0 != tag_1, f"Duplicate tradeoff_tag in incident {i+1} ({asset}@{hour}): {tag_0} == {tag_1}"
+        assert tag_0 != tag_1, (
+            f"Duplicate tradeoff_tag in incident {i + 1} ({asset}@{hour}): {tag_0} == {tag_1}"
+        )
         assert is_tag_truthful(tag_0, opts[0]["metrics"], opts[1]["metrics"]), (
-            f"Untruthful tag_0 {tag_0} in incident {i+1} ({asset}@{hour})"
+            f"Untruthful tag_0 {tag_0} in incident {i + 1} ({asset}@{hour})"
         )
         assert is_tag_truthful(tag_1, opts[1]["metrics"], opts[0]["metrics"]), (
-            f"Untruthful tag_1 {tag_1} in incident {i+1} ({asset}@{hour})"
+            f"Untruthful tag_1 {tag_1} in incident {i + 1} ({asset}@{hour})"
         )
         for opt in opts:
             for lv in opt["levers"]:
-                assert lv["type"] in OPERATIONAL_LEVER_TYPES, f"Non-operational lever {lv['type']} in crisis"
+                assert lv["type"] in OPERATIONAL_LEVER_TYPES, (
+                    f"Non-operational lever {lv['type']} in crisis"
+                )
 
         hh_0 = float(opts[0]["metrics"]["households_reconnected"])
         hh_1 = float(opts[1]["metrics"]["households_reconnected"])
@@ -306,7 +332,9 @@ async def run_simultaneous_autonomy_and_veto_check() -> dict[str, Any]:
     await asyncio.wait_for(q.get(), timeout=2.0)  # snapshot
 
     # 1. First failure: gas_centro -> let autonomy count down 5..0 and apply automatically
-    await session.disrupt(asset_id="gas_centro", duration_h=4, source="jury", jury_name="Jurado Uno")
+    await session.disrupt(
+        asset_id="gas_centro", duration_h=4, source="jury", jury_name="Jurado Uno"
+    )
     countdown_ticks_1: list[int] = []
     applied_1: dict[str, Any] | None = None
 
@@ -318,12 +346,16 @@ async def run_simultaneous_autonomy_and_veto_check() -> dict[str, Any]:
             applied_1 = ev
             break
 
-    assert countdown_ticks_1 == [5, 4, 3, 2, 1, 0], f"Unexpected countdown ticks: {countdown_ticks_1}"
+    assert countdown_ticks_1 == [5, 4, 3, 2, 1, 0], (
+        f"Unexpected countdown ticks: {countdown_ticks_1}"
+    )
     assert applied_1 is not None and applied_1["by"] == "gemini_autonomous"
 
     # 2. Second simultaneous failure while gas_centro is still active: L3 -> veto during countdown!
     await session.disrupt(asset_id="L3", duration_h=4, source="jury", jury_name="Jurado Dos")
-    assert len(session.active_events) == 2, f"Expected 2 simultaneous events, got {len(session.active_events)}"
+    assert len(session.active_events) == 2, (
+        f"Expected 2 simultaneous events, got {len(session.active_events)}"
+    )
 
     veto_sent = False
     vetoed_ev: dict[str, Any] | None = None
@@ -396,7 +428,7 @@ def write_latency_report(
         f"| `options.ready` p90 | `{p90_opt_high:.2f} ms` | `{p90_opt_med:.2f} ms` | `< 8000 ms (8 s)` | {med_p90_status} (`high/medium`: {high_p90_status}) |",
         f"| `options.ready` máx | `{max(opt_high):.2f} ms` | `{max(opt_med):.2f} ms` | `< 12000 ms (timeout)` | PASS |",
         "",
-        "> **Decisión de configuración (según regla de Fase 2):** Con `gemini-4-argon` real en vivo, `incident.detected` ocurre en `~25 ms` (`< 300 ms`). Al medir `options.ready` con `GRIDPILOT_DECIDER_THINKING=high/medium`, la latencia p90 supera los `8 s` (`~10–12 s`) debido a los tokens adicionales de razonamiento interno, por lo que se fija `DEFAULT_DECIDER_THINKING = \"low\"` por defecto en `backend/live/agent_loop.py` (donde el razonamiento operativo estructurado ya viaja en `thought_es`), reduciendo la latencia p50/p90 de `options.ready` a `~6–7.5 s` con timeout duro de `12 s`.",
+        '> **Decisión de configuración (según regla de Fase 2):** Con `gemini-4-argon` real en vivo, `incident.detected` ocurre en `~25 ms` (`< 300 ms`). Al medir `options.ready` con `GRIDPILOT_DECIDER_THINKING=high/medium`, la latencia p90 supera los `8 s` (`~10–12 s`) debido a los tokens adicionales de razonamiento interno, por lo que se fija `DEFAULT_DECIDER_THINKING = "low"` por defecto en `backend/live/agent_loop.py` (donde el razonamiento operativo estructurado ya viaja en `thought_es`), reduciendo la latencia p50/p90 de `options.ready` a `~6–7.5 s` con timeout duro de `12 s`.',
         "",
         "## 2. Detalle por Falla (`GRIDPILOT_DECIDER_THINKING=high/medium` vs `low`)",
         "",
@@ -446,9 +478,11 @@ async def async_main() -> None:
         f"options.ready p90 (medium)={percentile([r['options_ready_ms'] for r in med_rows], 90):.2f} ms"
     )
 
-    print("2/3 Running 20 random incidents check (validator, distinct tradeoff_tag, zero digits)...")
+    print(
+        "2/3 Running 20 random incidents check (validator, distinct tradeoff_tag, zero digits)..."
+    )
     random_20 = await run_twenty_random_incidents()
-    print(f"    20/20 passed validator, distinct tradeoff_tag, and zero digits in prose.")
+    print("    20/20 passed validator, distinct tradeoff_tag, and zero digits in prose.")
 
     print("3/3 Running 2 simultaneous failures + autonomous countdown + operator veto check...")
     e2e_summary = await run_simultaneous_autonomy_and_veto_check()

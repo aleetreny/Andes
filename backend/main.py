@@ -44,6 +44,7 @@ from backend.store import Conflict, QueueFull, Store
 from backend.worker import failure, fingerprint
 
 from backend.live.router import router as live_ops_router
+
 log = logging.getLogger("gridpilot")
 
 
@@ -124,7 +125,9 @@ def create_app(settings=None):
             with contextlib.suppress(asyncio.CancelledError):
                 await task
 
-    app = FastAPI(title="Andes · Operación de la red eléctrica con IA", version="2.0.0", lifespan=lifespan)
+    app = FastAPI(
+        title="Andes · Operación de la red eléctrica con IA", version="2.0.0", lifespan=lifespan
+    )
     app.state.store = store
     app.state.worker_task = None
     app.add_middleware(
@@ -241,7 +244,7 @@ def create_app(settings=None):
                         "https://generativelanguage.googleapis.com/v1beta/models",
                         params={"key": api_key, "pageSize": 1},
                     )
-                    ok = (resp.status_code == 200)
+                    ok = resp.status_code == 200
             except Exception:
                 ok = False
             latency_ms = round((time.perf_counter() - t0) * 1000, 1)

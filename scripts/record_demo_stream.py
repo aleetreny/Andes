@@ -26,13 +26,13 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from backend.live.agent_loop import (
+from backend.live.agent_loop import (  # noqa: E402
     OPERATIONAL_LEVER_TYPES,
     has_digits,
     is_tag_truthful,
     option_has_positive_improvement,
 )
-from backend.live.engine import LiveSession
+from backend.live.engine import LiveSession  # noqa: E402
 
 OUT_PATH = ROOT / "frontend" / "src" / "live" / "fixtures" / "demo-stream.jsonl"
 SCHEMA_PATH = ROOT / "contracts" / "live.schema.json"
@@ -130,37 +130,49 @@ def verify_stream(events: list[dict[str, Any]]) -> None:
     countdown_events = []
     for idx, ev in enumerate(events):
         errs = list(validator.iter_errors(ev))
-        assert not errs, f"Event #{idx} ({ev.get('type')}) failed schema validation: {errs[0].message}"
+        assert not errs, (
+            f"Event #{idx} ({ev.get('type')}) failed schema validation: {errs[0].message}"
+        )
 
         etype = ev.get("type")
         if etype == "agent.thought":
             thought_events.append(ev)
             assert not has_digits(ev["delta"]), f"Digit in agent.thought: {ev['delta']}"
-            assert "contingencia detectada en el sistema eléctrico nacional" not in ev["delta"].lower(), (
-                f"Generic boilerplate thought detected: {ev['delta']}"
-            )
+            assert (
+                "contingencia detectada en el sistema eléctrico nacional" not in ev["delta"].lower()
+            ), f"Generic boilerplate thought detected: {ev['delta']}"
         elif etype == "agent.note":
             assert not has_digits(ev["text_es"]), f"Digit in agent.note: {ev['text_es']}"
         elif etype == "agent.tool_call":
-            assert not has_digits(ev["args_summary_es"]), f"Digit in tool_call: {ev['args_summary_es']}"
+            assert not has_digits(ev["args_summary_es"]), (
+                f"Digit in tool_call: {ev['args_summary_es']}"
+            )
         elif etype == "autonomy.countdown":
             countdown_events.append(ev)
         elif etype == "options.ready":
             options_ready_events.append(ev)
             me = ev["model_execution"]
-            assert me["model"] != "deterministic-planner", f"Expected a real Gemini decider, got {me}"
+            assert me["model"] != "deterministic-planner", (
+                f"Expected a real Gemini decider, got {me}"
+            )
             assert me["status"] == "ok", f"Expected status ok, got {me}"
             assert me.get("response_id") and not str(me["response_id"]).startswith("det-"), (
                 f"Expected real Gemini response_id, got {me}"
             )
-            assert not has_digits(ev["diagnosis_es"]), f"Digit in diagnosis_es: {ev['diagnosis_es']}"
+            assert not has_digits(ev["diagnosis_es"]), (
+                f"Digit in diagnosis_es: {ev['diagnosis_es']}"
+            )
             opts = ev["options"]
             assert len(opts) == 2, f"Expected 2 options, got {len(opts)}"
             opt_a, opt_b = opts[0], opts[1]
             for opt in (opt_a, opt_b):
                 assert not has_digits(opt["title_es"]), f"Digit in title_es: {opt['title_es']}"
-                assert not has_digits(opt["rationale_es"]), f"Digit in rationale_es: {opt['rationale_es']}"
-                assert opt["validation"]["passed"] is True, f"Option {opt['option_id']} failed validation"
+                assert not has_digits(opt["rationale_es"]), (
+                    f"Digit in rationale_es: {opt['rationale_es']}"
+                )
+                assert opt["validation"]["passed"] is True, (
+                    f"Option {opt['option_id']} failed validation"
+                )
                 for lv in opt["levers"]:
                     assert lv["type"] in OPERATIONAL_LEVER_TYPES, (
                         f"Non-operational lever {lv['type']} in crisis option {opt['option_id']}"
@@ -183,10 +195,22 @@ def verify_stream(events: list[dict[str, Any]]) -> None:
                     f"recommended_id {ev['recommended_id']} has 0 improvement while other option has {other_opt['metrics']}"
                 )
 
-    assert len(options_ready_events) == 2, f"Expected 2 options.ready events, got {len(options_ready_events)}"
-    assert len(thought_events) >= 2, f"Expected >= 2 agent.thought events, got {len(thought_events)}"
-    inc1_thoughts = [e["delta"] for e in thought_events if e["incident_id"] == options_ready_events[0]["incident_id"]]
-    inc2_thoughts = [e["delta"] for e in thought_events if e["incident_id"] == options_ready_events[1]["incident_id"]]
+    assert len(options_ready_events) == 2, (
+        f"Expected 2 options.ready events, got {len(options_ready_events)}"
+    )
+    assert len(thought_events) >= 2, (
+        f"Expected >= 2 agent.thought events, got {len(thought_events)}"
+    )
+    inc1_thoughts = [
+        e["delta"]
+        for e in thought_events
+        if e["incident_id"] == options_ready_events[0]["incident_id"]
+    ]
+    inc2_thoughts = [
+        e["delta"]
+        for e in thought_events
+        if e["incident_id"] == options_ready_events[1]["incident_id"]
+    ]
     assert inc1_thoughts and inc2_thoughts and set(inc1_thoughts) != set(inc2_thoughts), (
         "Incident 1 and Incident 2 thoughts must be distinct and specific"
     )
@@ -195,9 +219,7 @@ def verify_stream(events: list[dict[str, Any]]) -> None:
     inc2_opt_ids = {o["option_id"] for o in options_ready_events[1]["options"]}
     assert inc1_opt_ids != inc2_opt_ids, f"Incident 1 and 2 have identical options: {inc1_opt_ids}"
     inc2_lever_types = {
-        lv["type"]
-        for o in options_ready_events[1]["options"]
-        for lv in o["levers"]
+        lv["type"] for o in options_ready_events[1]["options"] for lv in o["levers"]
     }
     assert inc2_lever_types & {"emergency_rating", "hydro_reserve_release"}, (
         f"Expected emergency_rating or hydro_reserve_release in Incident 2 (L3), got {inc2_lever_types}"
@@ -206,31 +228,47 @@ def verify_stream(events: list[dict[str, Any]]) -> None:
     from datetime import datetime
 
     # Gemini monitor: an hourly reading with code-computed metrics; a fallback must say so, never pass for the model.
-    monitor_notes = [e for e in events if e.get("type") == "agent.note" and e.get("kind") == "monitor"]
-    assert len(monitor_notes) >= 9, f"Expected >= 9 monitor notes (12:00-22:00), got {len(monitor_notes)}"
+    monitor_notes = [
+        e for e in events if e.get("type") == "agent.note" and e.get("kind") == "monitor"
+    ]
+    assert len(monitor_notes) >= 9, (
+        f"Expected >= 9 monitor notes (12:00-22:00), got {len(monitor_notes)}"
+    )
     hours = [e["hour"] for e in events]
     assert hours == sorted(hours), "Simulated hour goes backwards in the stream"
     for n in monitor_notes:
         me = n.get("model_execution") or {}
-        assert n.get("metrics") and n.get("severity") in {"info", "watch", "alert"}, f"Monitor note without reading: {n}"
+        assert n.get("metrics") and n.get("severity") in {"info", "watch", "alert"}, (
+            f"Monitor note without reading: {n}"
+        )
         assert me.get("role") == "monitor", f"Monitor note without model_execution: {n}"
         if me.get("status") != "ok":
-            assert me.get("model") == "deterministic-monitor", f"Failed monitor call labelled as a model: {me}"
+            assert me.get("model") == "deterministic-monitor", (
+                f"Failed monitor call labelled as a model: {me}"
+            )
     live_notes = [n for n in monitor_notes if n["model_execution"]["status"] == "ok"]
     assert len(live_notes) * 2 >= len(monitor_notes), (
         f"Only {len(live_notes)} of {len(monitor_notes)} monitor notes came from the fast model"
     )
-    assert any(n["severity"] == "alert" for n in monitor_notes), "No monitor alert during the incidents"
-    assert monitor_notes[-1]["severity"] != "alert", f"Grid did not read as recovered at the end: {monitor_notes[-1]}"
+    assert any(n["severity"] == "alert" for n in monitor_notes), (
+        "No monitor alert during the incidents"
+    )
+    assert monitor_notes[-1]["severity"] != "alert", (
+        f"Grid did not read as recovered at the end: {monitor_notes[-1]}"
+    )
 
     incident_events = [e for e in events if e.get("type") == "incident.detected"]
-    assert len(incident_events) == 2, f"Expected 2 incident.detected events, got {len(incident_events)}"
+    assert len(incident_events) == 2, (
+        f"Expected 2 incident.detected events, got {len(incident_events)}"
+    )
     jury_names = [e.get("disruption", {}).get("jury_name") for e in incident_events]
     assert all(jury_names) and len(set(jury_names)) == 2, (
         f"Expected 2 distinct non-empty jury_name values on incident.detected, got {jury_names}"
     )
 
-    assert len(countdown_events) == 6, f"Expected 6 autonomy.countdown events, got {len(countdown_events)}"
+    assert len(countdown_events) == 6, (
+        f"Expected 6 autonomy.countdown events, got {len(countdown_events)}"
+    )
     cd_hours = [e["hour"] for e in countdown_events]
     assert len(set(cd_hours)) == 6 and cd_hours == sorted(cd_hours), (
         f"Expected strictly increasing countdown hours, got {cd_hours}"

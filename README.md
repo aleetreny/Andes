@@ -19,20 +19,65 @@ An AI grid coordinator that helps Chile's power system recover from sudden outag
 
 </div>
 
+[![The Andes control room: an isometric map of Chile's five-zone grid with generation, line loading and homes powered, next to the recovery panel.](docs/images/demo.png)](https://aleetreny.github.io/Andes/)
+
 ---
 
-## What it does
+## The case study
 
-Chile's national grid runs 3,100 km from Arica to Chiloé along a single north–south backbone. When a large plant or a 500 kV line trips, power flows shift instantly, automatic load shedding cuts off homes, and operators have minutes to find a safe redispatch.
+### The problem
 
-Andes puts that moment on a control-room map:
+Chile's national grid (SEN) runs more than 3,100 km from Arica to Chiloé along one long north–south backbone. Two problems collide on that line:
+
+- **Congestion and curtailment.** The Atacama desert in the north produces huge amounts of cheap solar power, but most demand sits around Santiago and further south. When the transmission corridors fill up, clean energy is thrown away while thermal plants keep running elsewhere.
+- **Sudden contingencies.** When a large plant or a 500 kV line trips, power flows shift instantly. If the remaining units can't ramp fast enough, automatic load shedding (EDAC) cuts off entire feeders, and hundreds of thousands of homes go dark until operators find a safe redispatch.
+
+### Why now
+
+Supreme Decree 32/2026 requires Chile's grid operator (CEN) to move to automated, security-constrained economic dispatch (SCED). CEN's August 2026 implementation plan shows how far there is to go. Some dispatch instructions are still sent by email. Only 43.4% of the 355 facilities in scope had passed signal-validation tests, and full SCED production is targeted for 2029.
+
+### The idea: Gemini reasons, physics verifies
+
+Language models are good at reading a messy situation, forming hypotheses and explaining trade-offs. They are not trustworthy calculators. Andes splits the work accordingly:
+
+- **Gemini is the coordinator.** It watches the grid, detects the outage, decides which tools to call, tests candidate fixes, corrects itself when a plan fails, and explains the outcome in one plain sentence.
+- **Deterministic code provides every number.** A HiGHS linear programme computes the dispatch, and a separate validator that shares no code with the solver recomputes every constraint. Gemini can only quote numbers that came back from these tools.
+- **A human makes the call.** The operator sees two validated plans side by side and applies or vetoes one. An optional autonomous mode applies the recommended plan after a countdown, still inside the simulation.
+
+### A crisis, step by step
+
+1. **18:00, evening peak.** The 600 MW gas plant in central Chile trips without warning.
+2. **No hindsight.** The solver locks every decision made before the fault. The surviving coal, hydro and gas units are already near full output, the diesel peaker maxes out, and ramp limits slow everything else down. Centro starts shedding load.
+3. **Investigation.** Gemini reads the evidence and tests recovery options: a battery in the north, a battery in the south, or uprating the congested corridor. Each one goes through the solver and the validator.
+4. **Decision.** Two validated plans reach the operator with their cost, unserved energy and homes reconnected. The chosen plan plays out on the map hour by hour, and Andes drafts an audit report modelled on CEN's operating-instruction log.
+
+### Results on the demo scenario
+
+| Question | Outcome (simulated) |
+| --- | --- |
+| Where should a 150 MW / 600 MWh battery go to cut midday curtailment? | In the north it saves **631.6 MWh** of solar. In the south it saves **0 MWh**, because it sits on the wrong side of the bottleneck. |
+| How much does that battery help in the 18:00 gas outage? | **391.9 MWh** less unserved energy, and load shedding ends one hour sooner. |
+| Does uprating the congested line help in the crisis? | No: **0 MWh**. The comparison tool exposes that, so Gemini can't claim otherwise. |
+| Can the numbers be trusted? | **114** optimisation tests plus a **532-case** outage sweep that trips every asset, in planned and sudden mode, and checks every result independently. |
+
+These figures come from the committed five-zone demo scenario. They are reproducible model outputs, not measured savings on Chile's real grid.
+
+### Live at the hackathon
+
+On stage, the jury became the attacker. Each judge scanned a QR code and could sabotage the grid from their phone by tripping a plant, cutting a 500 kV line or knocking out Santiago's gas supply. A FastAPI backend streamed every event to the big screen in real time. Gemini analysed the attack while the simulated clock paused, then presented two recovery plans for the operator to accept or veto.
+
+The live day followed the real shape of CEN data from 14 August 2026: hourly demand and solar and wind profiles, scaled to fit the five-zone model.
+
+### From hackathon to portfolio
+
+A live demo that needs an API key, a backend and a tunnel doesn't stay online for long. The [public edition](https://aleetreny.github.io/Andes/) keeps the experience and drops the infrastructure. It replays a library of outage cases that the real solver computed and the validator approved: every plant and line, at six hours of the day. Everything runs in the browser, and the full live system stays in this repository.
+
+## How it works
 
 1. **Trigger an outage.** Trip a power plant or a transmission line anywhere on the corridor.
-2. **See the impact.** Unserved demand, overloaded lines and homes left without power appear on the map.
-3. **Compare recovery plans.** Gemini investigates the fault, calls the optimisation tools and proposes two plans, each solved by an LP solver and checked by an independent validator.
-4. **Decide.** The operator applies or vetoes a plan and watches generation, line flows and households recover.
-
-Every MW, MWh and dollar shown comes from deterministic code, never from the language model. Gemini reasons and explains; the solver and validator provide the numbers.
+2. **See the impact.** Unserved demand, saturated lines and homes left without power appear on the map.
+3. **Compare recovery plans.** Two plans, each solved by the LP solver and checked by the independent validator.
+4. **Decide.** Apply or veto a plan and watch generation, line flows and households recover.
 
 ## Interactive demo
 

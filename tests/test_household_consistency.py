@@ -14,7 +14,6 @@ import os
 from pathlib import Path
 from typing import Any
 
-import pytest
 
 from agent.regulatory import (
     compute_household_impact,
@@ -75,7 +74,9 @@ def test_no_forbidden_household_strings_in_repo() -> None:
                     f"Found forbidden inconsistent household string '{forbidden}' in {p.relative_to(REPO_ROOT)}"
                 )
 
-    assert checked_file_count > 20, f"Expected to scan at least 20 files, scanned {checked_file_count}"
+    assert checked_file_count > 20, (
+        f"Expected to scan at least 20 files, scanned {checked_file_count}"
+    )
 
 
 def test_backend_live_agent_loop_uses_mw_not_mwh() -> None:
@@ -125,8 +126,12 @@ def test_backend_live_agent_loop_uses_mw_not_mwh() -> None:
 
     hh_off = solution["households_off"]["n_centro"]
     # Check each hour is strictly unserved_mw(node, hour) * households_per_mw
-    assert hh_off[0] == 10000, f"Hour 0 expected 10,000 households off (10 MW * 1000), got {hh_off[0]}"
-    assert hh_off[1] == 25000, f"Hour 1 expected 25,000 households off (25 MW * 1000), got {hh_off[1]}"
+    assert hh_off[0] == 10000, (
+        f"Hour 0 expected 10,000 households off (10 MW * 1000), got {hh_off[0]}"
+    )
+    assert hh_off[1] == 25000, (
+        f"Hour 1 expected 25,000 households off (25 MW * 1000), got {hh_off[1]}"
+    )
     assert hh_off[2] == 0, f"Hour 2 expected 0 households off (0 MW * 1000), got {hh_off[2]}"
 
     # Total unserved energy is 35 MWh; ensure we did NOT do 35 * 1000 = 35000 in any single hour

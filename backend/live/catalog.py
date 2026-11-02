@@ -211,6 +211,7 @@ def build_catalog(scenario: dict | None = None) -> dict[str, Any]:
                 scen = json.load(f)
         elif path == FIXTURE_PATH:
             from optimisation.fixtures.build_demo_scenario import build
+
             scen = build()
         else:
             # An explicitly selected day that is missing must fail, not quietly become the synthetic one.

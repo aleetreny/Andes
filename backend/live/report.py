@@ -141,8 +141,12 @@ def _render_markdown(ctx: dict[str, Any]) -> str:
     lines: list[str] = []
 
     # 1. Encabezado Ejecutivo
-    lines.append("# Andes · Operación de la red eléctrica con IA — REGISTRO DE INSTRUCCIONES OPERATIVAS (RIO)")
-    lines.append("## Reporte de Auditoría y Despacho en Simulación — Sistema Eléctrico Nacional (SEN)\n")
+    lines.append(
+        "# Andes · Operación de la red eléctrica con IA — REGISTRO DE INSTRUCCIONES OPERATIVAS (RIO)"
+    )
+    lines.append(
+        "## Reporte de Auditoría y Despacho en Simulación — Sistema Eléctrico Nacional (SEN)\n"
+    )
     lines.append(f"> *{SLOGAN_NEURO_SYMBOLIC}*\n")
 
     autonomy_str = (
@@ -150,7 +154,9 @@ def _render_markdown(ctx: dict[str, Any]) -> str:
         if ctx["autonomy"]
         else "Deshabilitado — Control Manual Operador Humano (operator)"
     )
-    hour_formatted = f"{ctx['hour']:.2f} h (T={int(ctx['hour']):02d}:{int((ctx['hour'] % 1) * 60):02d})"
+    hour_formatted = (
+        f"{ctx['hour']:.2f} h (T={int(ctx['hour']):02d}:{int((ctx['hour'] % 1) * 60):02d})"
+    )
 
     lines.append("### Encabezado Ejecutivo")
     lines.append(f"- **ID de Sesión (`session_id`)**: `{ctx['session_id']}`")
@@ -179,9 +185,17 @@ def _render_markdown(ctx: dict[str, Any]) -> str:
             jury_name = disruption.get("jury_name") or inc.get("jury_name")
 
             if jury_name:
-                origin_str = f"Jurado ({source}): Jurado Test ({jury_name})" if "Jurado Test" not in str(jury_name) else f"Jurado ({source}): {jury_name}"
+                origin_str = (
+                    f"Jurado ({source}): Jurado Test ({jury_name})"
+                    if "Jurado Test" not in str(jury_name)
+                    else f"Jurado ({source}): {jury_name}"
+                )
             else:
-                origin_str = f"Operador ({source})" if source == "operator" else f"Script / Sistema ({source})"
+                origin_str = (
+                    f"Operador ({source})"
+                    if source == "operator"
+                    else f"Script / Sistema ({source})"
+                )
 
             impact = inc.get("impact") or {}
             unserved_mw_peak = float(impact.get("unserved_mw_peak", 0.0))
@@ -196,7 +210,9 @@ def _render_markdown(ctx: dict[str, Any]) -> str:
             lines.append(f"- **ID de Evento**: `{event_id}`")
             lines.append(f"- **Activo Afectado**: `{asset_id}`")
             lines.append(f"- **Tipo de Falla**: `{fault_type}`")
-            lines.append(f"- **Ventana Horaria**: `T={from_h:02d}:00 – T={to_h:02d}:00` ({to_h - from_h} horas)")
+            lines.append(
+                f"- **Ventana Horaria**: `T={from_h:02d}:00 – T={to_h:02d}:00` ({to_h - from_h} horas)"
+            )
             lines.append(f"- **Origen del Disparo**: `{origin_str}`")
             lines.append(f"- **Pico de Potencia No Suministrada**: `{unserved_mw_peak:.2f} MW`")
             lines.append(f"- **Pico de Hogares Afectados**: `{hh_peak:,} hogares`")
@@ -207,7 +223,9 @@ def _render_markdown(ctx: dict[str, Any]) -> str:
     lines.append("---")
     lines.append("### Registro de Decisiones Operativas y Validaciones Físicas\n")
     if not ctx["decision_log"]:
-        lines.append("*No se registraron decisiones ni intervenciones operativas durante esta sesión.*\n")
+        lines.append(
+            "*No se registraron decisiones ni intervenciones operativas durante esta sesión.*\n"
+        )
     else:
         for idx, dec in enumerate(ctx["decision_log"], start=1):
             target_inc_id = dec.get("incident_id", "inc_unknown")
@@ -259,14 +277,20 @@ def _render_markdown(ctx: dict[str, Any]) -> str:
             # Metrics detail
             lines.append("- **Métricas Verificadas por Código Determinista**:")
             lines.append(f"  - Hogares Reconectados (`households_reconnected`): `{hh_rec:,}`")
-            lines.append(f"  - Energía No Suministrada Evitada (`unserved_mwh_avoided`): `{unserved_avoided:.2f} MWh`")
+            lines.append(
+                f"  - Energía No Suministrada Evitada (`unserved_mwh_avoided`): `{unserved_avoided:.2f} MWh`"
+            )
             lines.append(f"  - Variación de Costo (`cost_delta_usd`): `${cost_delta:,.2f} USD`")
             lines.append(f"  - Variación de Emisiones (`co2_delta_t`): `{co2_delta:.2f} tCO₂`")
-            lines.append(f"  - Carga Máxima de Línea Troncal (`max_line_loading_pct`): `{max_line_loading:.1f}%`")
+            lines.append(
+                f"  - Carga Máxima de Línea Troncal (`max_line_loading_pct`): `{max_line_loading:.1f}%`"
+            )
 
             # Validator detail
             lines.append("- **Resultado del Validador Independiente**:")
-            lines.append(f"  - Estado de Validación Física: **{val_status_str}** (`passed={val_passed}`)")
+            lines.append(
+                f"  - Estado de Validación Física: **{val_status_str}** (`passed={val_passed}`)"
+            )
             lines.append(f"  - Residuo Nodal Máximo (`max_residual_mw`): `{max_res:.6e} MW`")
             lines.append(f"  - Violaciones Físicas: `{violations_str}`\n")
 
@@ -283,9 +307,13 @@ def _render_markdown(ctx: dict[str, Any]) -> str:
     )
 
     lines.append("\n#### Factores de Emisión de CO₂ por Tecnología:")
-    lines.append("- Gas Natural (`gas`): `0.40` tCO₂/MWh (`gas: 0.40`, clasificación: `assumption`)")
+    lines.append(
+        "- Gas Natural (`gas`): `0.40` tCO₂/MWh (`gas: 0.40`, clasificación: `assumption`)"
+    )
     lines.append("- Carbón (`coal`): `0.95` tCO₂/MWh (`coal: 0.95`, clasificación: `assumption`)")
-    lines.append("- Diésel (`diesel`): `0.75` tCO₂/MWh (`diesel: 0.75`, clasificación: `assumption`)")
+    lines.append(
+        "- Diésel (`diesel`): `0.75` tCO₂/MWh (`diesel: 0.75`, clasificación: `assumption`)"
+    )
     lines.append("- Solar / Eólica / Hidráulica: `0.00` tCO₂/MWh (`assumption`)")
 
     lines.append("\n#### Topología y Perfiles del Escenario:")
@@ -295,16 +323,24 @@ def _render_markdown(ctx: dict[str, Any]) -> str:
     )
 
     lines.append("\n#### Matriz Completa de Procedencia (`session.catalog.provenance`):")
-    lines.append("| Componente / Parámetro | Clasificación de Procedencia | Justificación / Fuente |")
+    lines.append(
+        "| Componente / Parámetro | Clasificación de Procedencia | Justificación / Fuente |"
+    )
     lines.append("| :--- | :--- | :--- |")
     for key, prov_val in ctx["provenance"].items():
         lines.append(f"| `{key}` | `{prov_val}` | Catálogo del sistema simulado SEN |")
 
     lines.append("\n#### Supuestos Económicos y Operativos (`session.catalog.assumptions`):")
-    lines.append(f"- `households_per_mw`: `1000` (`assumption`)")
-    lines.append(f"- `voll_usd_per_mwh`: `${ctx['assumptions'].get('voll_usd_per_mwh', 10000.0):,.2f} USD/MWh` (`assumption`)")
-    lines.append(f"- `demand_response_cost_usd_per_mwh`: `${ctx['assumptions'].get('demand_response_cost_usd_per_mwh', 300.0):,.2f} USD/MWh` (`assumption`)")
-    lines.append(f"- `hydro_water_value_usd_per_mwh`: `${ctx['assumptions'].get('hydro_water_value_usd_per_mwh', 120.0):,.2f} USD/MWh` (`assumption`)\n")
+    lines.append("- `households_per_mw`: `1000` (`assumption`)")
+    lines.append(
+        f"- `voll_usd_per_mwh`: `${ctx['assumptions'].get('voll_usd_per_mwh', 10000.0):,.2f} USD/MWh` (`assumption`)"
+    )
+    lines.append(
+        f"- `demand_response_cost_usd_per_mwh`: `${ctx['assumptions'].get('demand_response_cost_usd_per_mwh', 300.0):,.2f} USD/MWh` (`assumption`)"
+    )
+    lines.append(
+        f"- `hydro_water_value_usd_per_mwh`: `${ctx['assumptions'].get('hydro_water_value_usd_per_mwh', 120.0):,.2f} USD/MWh` (`assumption`)\n"
+    )
 
     # 5. Marco Regulatorio Chileno y Descargo de Responsabilidad
     lines.append("---")
@@ -337,7 +373,7 @@ def _render_markdown(ctx: dict[str, Any]) -> str:
 
     lines.append(f"\n#### Descargo de Responsabilidad Legal (`{LEGAL_DISCLAIMER_STATUS}`):")
     lines.append(f"> **Estado de Certificación Legal**: `{LEGAL_DISCLAIMER_STATUS}`")
-    lines.append(f"> ")
+    lines.append("> ")
     lines.append(f"> {LEGAL_DISCLAIMER_TEXT}\n")
 
     return "\n".join(lines)
@@ -352,7 +388,9 @@ def _render_html(ctx: dict[str, Any]) -> str:
         if ctx["autonomy"]
         else "Deshabilitado — Control Manual Operador Humano (operator)"
     )
-    hour_formatted = f"{ctx['hour']:.2f} h (T={int(ctx['hour']):02d}:{int((ctx['hour'] % 1) * 60):02d})"
+    hour_formatted = (
+        f"{ctx['hour']:.2f} h (T={int(ctx['hour']):02d}:{int((ctx['hour'] % 1) * 60):02d})"
+    )
 
     # CSS with embedded @media print
     css = """
@@ -547,40 +585,42 @@ def _render_html(ctx: dict[str, Any]) -> str:
 
     out: list[str] = [
         "<!DOCTYPE html>",
-        "<html lang=\"es\">",
+        '<html lang="es">',
         "<head>",
-        "  <meta charset=\"utf-8\">",
+        '  <meta charset="utf-8">',
         "  <title>Andes · Operación de la red eléctrica con IA — Reporte RIO</title>",
         css,
         "</head>",
         "<body>",
-        "<div class=\"container\">",
+        '<div class="container">',
         "  <header>",
         "    <h1>Andes · Operación de la red eléctrica con IA — REGISTRO DE INSTRUCCIONES OPERATIVAS (RIO)</h1>",
         "    <h2>Sistema Eléctrico Nacional (SEN) — Coordinación de Seguridad y Despacho Económico</h2>",
-        f"    <div class=\"slogan\">{html.escape(SLOGAN_NEURO_SYMBOLIC)}</div>",
+        f'    <div class="slogan">{html.escape(SLOGAN_NEURO_SYMBOLIC)}</div>',
         "  </header>",
         "",
-        "  <section id=\"encabezado-ejecutivo\">",
+        '  <section id="encabezado-ejecutivo">',
         "    <h3>Encabezado Ejecutivo</h3>",
-        "    <div class=\"meta-grid\">",
-        f"      <div class=\"meta-item\"><span class=\"meta-label\">Session ID</span><span class=\"meta-val\"><code>{session_id_esc}</code></span></div>",
-        f"      <div class=\"meta-item\"><span class=\"meta-label\">Escenario</span><span class=\"meta-val\"><code>{scenario_id_esc}</code></span></div>",
-        f"      <div class=\"meta-item\"><span class=\"meta-label\">Hora Simulada</span><span class=\"meta-val\">{hour_formatted}</span></div>",
-        f"      <div class=\"meta-item\"><span class=\"meta-label\">Estado NTSyCS</span><span class=\"meta-val\"><span class=\"badge badge-pass\">{grid_state_esc}</span></span></div>",
-        f"      <div class=\"meta-item\"><span class=\"meta-label\">Modo Autónomo</span><span class=\"meta-val\">{html.escape(autonomy_str)}</span></div>",
-        f"      <div class=\"meta-item\"><span class=\"meta-label\">Total Contingencias</span><span class=\"meta-val\">{len(ctx['incidents'])}</span></div>",
-        f"      <div class=\"meta-item\"><span class=\"meta-label\">Decisiones RIO</span><span class=\"meta-val\">{len(ctx['decision_log'])}</span></div>",
+        '    <div class="meta-grid">',
+        f'      <div class="meta-item"><span class="meta-label">Session ID</span><span class="meta-val"><code>{session_id_esc}</code></span></div>',
+        f'      <div class="meta-item"><span class="meta-label">Escenario</span><span class="meta-val"><code>{scenario_id_esc}</code></span></div>',
+        f'      <div class="meta-item"><span class="meta-label">Hora Simulada</span><span class="meta-val">{hour_formatted}</span></div>',
+        f'      <div class="meta-item"><span class="meta-label">Estado NTSyCS</span><span class="meta-val"><span class="badge badge-pass">{grid_state_esc}</span></span></div>',
+        f'      <div class="meta-item"><span class="meta-label">Modo Autónomo</span><span class="meta-val">{html.escape(autonomy_str)}</span></div>',
+        f'      <div class="meta-item"><span class="meta-label">Total Contingencias</span><span class="meta-val">{len(ctx["incidents"])}</span></div>',
+        f'      <div class="meta-item"><span class="meta-label">Decisiones RIO</span><span class="meta-val">{len(ctx["decision_log"])}</span></div>',
         "    </div>",
         "  </section>",
         "",
-        "  <section id=\"linea-tiempo\">",
+        '  <section id="linea-tiempo">',
         "    <h3>Línea de Tiempo de Incidentes y Contingencias</h3>",
     ]
 
     # Incidents in HTML
     if not ctx["incidents"]:
-        out.append("    <p><em>No se registraron contingencias operativas durante esta sesión.</em></p>")
+        out.append(
+            "    <p><em>No se registraron contingencias operativas durante esta sesión.</em></p>"
+        )
     else:
         for idx, inc in enumerate(ctx["incidents"], start=1):
             inc_id = inc.get("incident_id", f"inc_{idx}")
@@ -594,9 +634,17 @@ def _render_html(ctx: dict[str, Any]) -> str:
             jury_name = disruption.get("jury_name") or inc.get("jury_name")
 
             if jury_name:
-                origin_str = f"Jurado ({source}): Jurado Test ({jury_name})" if "Jurado Test" not in str(jury_name) else f"Jurado ({source}): {jury_name}"
+                origin_str = (
+                    f"Jurado ({source}): Jurado Test ({jury_name})"
+                    if "Jurado Test" not in str(jury_name)
+                    else f"Jurado ({source}): {jury_name}"
+                )
             else:
-                origin_str = f"Operador ({source})" if source == "operator" else f"Script / Sistema ({source})"
+                origin_str = (
+                    f"Operador ({source})"
+                    if source == "operator"
+                    else f"Script / Sistema ({source})"
+                )
 
             impact = inc.get("impact") or {}
             unserved_mw_peak = float(impact.get("unserved_mw_peak", 0.0))
@@ -606,37 +654,43 @@ def _render_html(ctx: dict[str, Any]) -> str:
             lines_ov = impact.get("lines_overloaded") or []
             lines_str = ", ".join(lines_ov) if lines_ov else "Ninguna"
 
-            out.extend([
-                f"    <div class=\"card\">",
-                f"      <div class=\"card-header\">",
-                f"        <strong>Incidente #{idx}: <code>{html.escape(inc_id)}</code> ({html.escape(asset_id)})</strong>",
-                f"        <span class=\"badge badge-warn\">{html.escape(fault_type)}</span>",
-                f"      </div>",
-                f"      <ul>",
-                f"        <li><strong>ID de Incidente</strong>: <code>{html.escape(inc_id)}</code></li>",
-                f"        <li><strong>ID de Evento</strong>: <code>{html.escape(event_id)}</code></li>",
-                f"        <li><strong>Activo Afectado</strong>: <code>{html.escape(asset_id)}</code></li>",
-                f"        <li><strong>Tipo de Falla</strong>: <code>{html.escape(fault_type)}</code></li>",
-                f"        <li><strong>Ventana Horaria</strong>: <code>T={from_h:02d}:00 – T={to_h:02d}:00</code> ({to_h - from_h} horas)</li>",
-                f"        <li><strong>Origen del Disparo</strong>: {html.escape(origin_str)}</li>",
-                f"        <li><strong>Pico de Potencia No Suministrada</strong>: <code>{unserved_mw_peak:.2f} MW</code></li>",
-                f"        <li><strong>Pico de Hogares Afectados</strong>: <code>{hh_peak:,} hogares</code></li>",
-                f"        <li><strong>Nodos Afectados</strong>: <code>{html.escape(nodes_str)}</code></li>",
-                f"        <li><strong>Líneas Sobrecargadas (>95%)</strong>: <code>{html.escape(lines_str)}</code></li>",
-                f"      </ul>",
-                f"    </div>",
-            ])
+            out.extend(
+                [
+                    '    <div class="card">',
+                    '      <div class="card-header">',
+                    f"        <strong>Incidente #{idx}: <code>{html.escape(inc_id)}</code> ({html.escape(asset_id)})</strong>",
+                    f'        <span class="badge badge-warn">{html.escape(fault_type)}</span>',
+                    "      </div>",
+                    "      <ul>",
+                    f"        <li><strong>ID de Incidente</strong>: <code>{html.escape(inc_id)}</code></li>",
+                    f"        <li><strong>ID de Evento</strong>: <code>{html.escape(event_id)}</code></li>",
+                    f"        <li><strong>Activo Afectado</strong>: <code>{html.escape(asset_id)}</code></li>",
+                    f"        <li><strong>Tipo de Falla</strong>: <code>{html.escape(fault_type)}</code></li>",
+                    f"        <li><strong>Ventana Horaria</strong>: <code>T={from_h:02d}:00 – T={to_h:02d}:00</code> ({to_h - from_h} horas)</li>",
+                    f"        <li><strong>Origen del Disparo</strong>: {html.escape(origin_str)}</li>",
+                    f"        <li><strong>Pico de Potencia No Suministrada</strong>: <code>{unserved_mw_peak:.2f} MW</code></li>",
+                    f"        <li><strong>Pico de Hogares Afectados</strong>: <code>{hh_peak:,} hogares</code></li>",
+                    f"        <li><strong>Nodos Afectados</strong>: <code>{html.escape(nodes_str)}</code></li>",
+                    f"        <li><strong>Líneas Sobrecargadas (>95%)</strong>: <code>{html.escape(lines_str)}</code></li>",
+                    "      </ul>",
+                    "    </div>",
+                ]
+            )
 
-    out.extend([
-        "  </section>",
-        "",
-        "  <section id=\"decisiones-operativas\">",
-        "    <h3>Registro de Decisiones Operativas y Validaciones Físicas</h3>",
-    ])
+    out.extend(
+        [
+            "  </section>",
+            "",
+            '  <section id="decisiones-operativas">',
+            "    <h3>Registro de Decisiones Operativas y Validaciones Físicas</h3>",
+        ]
+    )
 
     # Decisions in HTML
     if not ctx["decision_log"]:
-        out.append("    <p><em>No se registraron decisiones ni intervenciones operativas durante esta sesión.</em></p>")
+        out.append(
+            "    <p><em>No se registraron decisiones ni intervenciones operativas durante esta sesión.</em></p>"
+        )
     else:
         for idx, dec in enumerate(ctx["decision_log"], start=1):
             target_inc_id = dec.get("incident_id", "inc_unknown")
@@ -675,99 +729,111 @@ def _render_html(ctx: dict[str, Any]) -> str:
                 else "Ninguna (no-action o vetada)"
             )
 
-            out.extend([
-                f"    <div class=\"card\">",
-                f"      <div class=\"card-header\">",
-                f"        <strong>Decisión #{idx}: Plan <code>{html.escape(chosen_opt_id)}</code></strong>",
-                f"        <span class=\"badge {badge_class}\">{html.escape(action_str)}</span>",
-                f"      </div>",
-                f"      <p><strong>Incidente Asociado</strong>: <code>{html.escape(target_inc_id)}</code> | <strong>Opción</strong>: <code>{html.escape(chosen_opt_id)}</code></p>",
-                f"      <p><strong>Autor de la Decisión</strong>: <strong>{html.escape(author_str)}</strong></p>",
-                f"      <p><strong>Acción Ejecutada</strong>: <strong>{html.escape(action_str)}</strong></p>",
-                f"      <p><strong>Hora Simulada</strong>: <code>T={hour_dec:.2f} h</code> (<code>{html.escape(ts_utc)}</code>)</p>",
-                f"      <p><strong>Palancas Aplicadas (<code>levers</code>)</strong>: <code>{html.escape(levers_desc)}</code></p>",
-                f"      <h4>Métricas Verificadas por Código Determinista:</h4>",
-                f"      <ul>",
-                f"        <li>Hogares Reconectados (<code>households_reconnected</code>): <strong>{hh_rec:,}</strong></li>",
-                f"        <li>Energía No Suministrada Evitada (<code>unserved_mwh_avoided</code>): <strong>{unserved_avoided:.2f} MWh</strong></li>",
-                f"        <li>Variación de Costo (<code>cost_delta_usd</code>): <strong>${cost_delta:,.2f} USD</strong></li>",
-                f"        <li>Variación de Emisiones (<code>co2_delta_t</code>): <strong>{co2_delta:.2f} tCO₂</strong></li>",
-                f"        <li>Carga Máxima de Línea (<code>max_line_loading_pct</code>): <strong>{max_line_loading:.1f}%</strong></li>",
-                f"      </ul>",
-                f"      <h4>Resultado del Validador Independiente:</h4>",
-                f"      <ul>",
-                f"        <li>Estado de Validación Física: <span class=\"badge {badge_class}\"><strong>{val_status_str}</strong></span> (<code>passed={val_passed}</code>)</li>",
-                f"        <li>Residuo Nodal Máximo (<code>max_residual_mw</code>): <code>{max_res:.6e} MW</code></li>",
-                f"        <li>Violaciones Físicas: <code>{html.escape(violations_str)}</code></li>",
-                f"      </ul>",
-                f"    </div>",
-            ])
+            out.extend(
+                [
+                    '    <div class="card">',
+                    '      <div class="card-header">',
+                    f"        <strong>Decisión #{idx}: Plan <code>{html.escape(chosen_opt_id)}</code></strong>",
+                    f'        <span class="badge {badge_class}">{html.escape(action_str)}</span>',
+                    "      </div>",
+                    f"      <p><strong>Incidente Asociado</strong>: <code>{html.escape(target_inc_id)}</code> | <strong>Opción</strong>: <code>{html.escape(chosen_opt_id)}</code></p>",
+                    f"      <p><strong>Autor de la Decisión</strong>: <strong>{html.escape(author_str)}</strong></p>",
+                    f"      <p><strong>Acción Ejecutada</strong>: <strong>{html.escape(action_str)}</strong></p>",
+                    f"      <p><strong>Hora Simulada</strong>: <code>T={hour_dec:.2f} h</code> (<code>{html.escape(ts_utc)}</code>)</p>",
+                    f"      <p><strong>Palancas Aplicadas (<code>levers</code>)</strong>: <code>{html.escape(levers_desc)}</code></p>",
+                    "      <h4>Métricas Verificadas por Código Determinista:</h4>",
+                    "      <ul>",
+                    f"        <li>Hogares Reconectados (<code>households_reconnected</code>): <strong>{hh_rec:,}</strong></li>",
+                    f"        <li>Energía No Suministrada Evitada (<code>unserved_mwh_avoided</code>): <strong>{unserved_avoided:.2f} MWh</strong></li>",
+                    f"        <li>Variación de Costo (<code>cost_delta_usd</code>): <strong>${cost_delta:,.2f} USD</strong></li>",
+                    f"        <li>Variación de Emisiones (<code>co2_delta_t</code>): <strong>{co2_delta:.2f} tCO₂</strong></li>",
+                    f"        <li>Carga Máxima de Línea (<code>max_line_loading_pct</code>): <strong>{max_line_loading:.1f}%</strong></li>",
+                    "      </ul>",
+                    "      <h4>Resultado del Validador Independiente:</h4>",
+                    "      <ul>",
+                    f'        <li>Estado de Validación Física: <span class="badge {badge_class}"><strong>{val_status_str}</strong></span> (<code>passed={val_passed}</code>)</li>',
+                    f"        <li>Residuo Nodal Máximo (<code>max_residual_mw</code>): <code>{max_res:.6e} MW</code></li>",
+                    f"        <li>Violaciones Físicas: <code>{html.escape(violations_str)}</code></li>",
+                    "      </ul>",
+                    "    </div>",
+                ]
+            )
 
-    out.extend([
-        "  </section>",
-        "",
-        "  <section id=\"procedencia-supuestos\">",
-        "    <h3>Procedencia de Datos y Supuestos Explícitos</h3>",
-        "    <h4>Fórmula Determinista de Afectación Residencial:</h4>",
-        "    <pre><code>hogares_sin_luz(nodo, hora) = unserved_mw(nodo, hora) × households_per_mw(nodo)</code></pre>",
-        "    <p>Factor de conversión residencial: <code>households_per_mw = 1000</code> (Clasificación: <code>assumption</code> / <code>derived</code>, equivalente a 1.0 kW de demanda coincidente por hogar en subestación).</p>",
-        "    <h4>Factores de Emisión de CO₂ por Tecnología:</h4>",
-        "    <ul>",
-        "      <li>Gas Natural (<code>gas</code>): <code>0.40</code> tCO₂/MWh (<code>gas: 0.40</code>, clasificación: <code>assumption</code>)</li>",
-        "      <li>Carbón (<code>coal</code>): <code>0.95</code> tCO₂/MWh (<code>coal: 0.95</code>, clasificación: <code>assumption</code>)</li>",
-        "      <li>Diésel (<code>diesel</code>): <code>0.75</code> tCO₂/MWh (<code>diesel: 0.75</code>, clasificación: <code>assumption</code>)</li>",
-        "      <li>Solar / Eólica / Hidráulica: <code>0.00</code> tCO₂/MWh (clasificación: <code>assumption</code>)</li>",
-        "    </ul>",
-        "    <h4>Topología y Perfiles del Escenario:</h4>",
-        "    <p>Topología de 5 barras SEN y curvas horarias de demanda y recurso renovable: clasificación <code>synthetic</code>.</p>",
-        "    <h4>Matriz de Procedencia (<code>session.catalog.provenance</code>):</h4>",
-        "    <table>",
-        "      <thead><tr><th>Parámetro / Componente</th><th>Clasificación</th><th>Fuente</th></tr></thead>",
-        "      <tbody>",
-    ])
+    out.extend(
+        [
+            "  </section>",
+            "",
+            '  <section id="procedencia-supuestos">',
+            "    <h3>Procedencia de Datos y Supuestos Explícitos</h3>",
+            "    <h4>Fórmula Determinista de Afectación Residencial:</h4>",
+            "    <pre><code>hogares_sin_luz(nodo, hora) = unserved_mw(nodo, hora) × households_per_mw(nodo)</code></pre>",
+            "    <p>Factor de conversión residencial: <code>households_per_mw = 1000</code> (Clasificación: <code>assumption</code> / <code>derived</code>, equivalente a 1.0 kW de demanda coincidente por hogar en subestación).</p>",
+            "    <h4>Factores de Emisión de CO₂ por Tecnología:</h4>",
+            "    <ul>",
+            "      <li>Gas Natural (<code>gas</code>): <code>0.40</code> tCO₂/MWh (<code>gas: 0.40</code>, clasificación: <code>assumption</code>)</li>",
+            "      <li>Carbón (<code>coal</code>): <code>0.95</code> tCO₂/MWh (<code>coal: 0.95</code>, clasificación: <code>assumption</code>)</li>",
+            "      <li>Diésel (<code>diesel</code>): <code>0.75</code> tCO₂/MWh (<code>diesel: 0.75</code>, clasificación: <code>assumption</code>)</li>",
+            "      <li>Solar / Eólica / Hidráulica: <code>0.00</code> tCO₂/MWh (clasificación: <code>assumption</code>)</li>",
+            "    </ul>",
+            "    <h4>Topología y Perfiles del Escenario:</h4>",
+            "    <p>Topología de 5 barras SEN y curvas horarias de demanda y recurso renovable: clasificación <code>synthetic</code>.</p>",
+            "    <h4>Matriz de Procedencia (<code>session.catalog.provenance</code>):</h4>",
+            "    <table>",
+            "      <thead><tr><th>Parámetro / Componente</th><th>Clasificación</th><th>Fuente</th></tr></thead>",
+            "      <tbody>",
+        ]
+    )
 
     for k, v in ctx["provenance"].items():
-        out.append(f"        <tr><td><code>{html.escape(k)}</code></td><td><code>{html.escape(str(v))}</code></td><td>Catálogo SEN Andes</td></tr>")
+        out.append(
+            f"        <tr><td><code>{html.escape(k)}</code></td><td><code>{html.escape(str(v))}</code></td><td>Catálogo SEN Andes</td></tr>"
+        )
 
-    out.extend([
-        "      </tbody>",
-        "    </table>",
-        "    <h4>Supuestos Económicos y Operativos (<code>session.catalog.assumptions</code>):</h4>",
-        "    <ul>",
-        "      <li><code>households_per_mw</code>: <code>1000</code> (<code>assumption</code>)</li>",
-        f"      <li><code>voll_usd_per_mwh</code>: <code>${ctx['assumptions'].get('voll_usd_per_mwh', 10000.0):,.2f} USD/MWh</code> (<code>assumption</code>)</li>",
-        f"      <li><code>demand_response_cost_usd_per_mwh</code>: <code>${ctx['assumptions'].get('demand_response_cost_usd_per_mwh', 300.0):,.2f} USD/MWh</code> (<code>assumption</code>)</li>",
-        f"      <li><code>hydro_water_value_usd_per_mwh</code>: <code>${ctx['assumptions'].get('hydro_water_value_usd_per_mwh', 120.0):,.2f} USD/MWh</code> (<code>assumption</code>)</li>",
-        "    </ul>",
-        "  </section>",
-        "",
-        "  <section id=\"marco-regulatorio\">",
-        "    <h3>Marco Regulatorio Chileno y Descargo de Responsabilidad</h3>",
-        "    <ol>",
-        f"      <li><strong>{html.escape(CHILEAN_LEGAL_FRAMEWORK['LGSE-ART-72-1']['code'])}</strong> ({html.escape(CHILEAN_LEGAL_FRAMEWORK['LGSE-ART-72-1']['title'])}):<br>{html.escape(CHILEAN_LEGAL_FRAMEWORK['LGSE-ART-72-1']['principle'])}<br><em>Cita: LGSE DFL N° 4/2006 Art. 72°-1 (Coordinación segura y a mínimo costo del SEN)</em></li>",
-        f"      <li><strong>{html.escape(CHILEAN_LEGAL_FRAMEWORK['DS-32-2026-ART-117-BIS']['code'])}</strong> ({html.escape(CHILEAN_LEGAL_FRAMEWORK['DS-32-2026-ART-117-BIS']['title'])}):<br>{html.escape(CHILEAN_LEGAL_FRAMEWORK['DS-32-2026-ART-117-BIS']['principle'])}<br><em>Cita: DS N° 32/2026 Art. 117 bis (Despacho económico con restricciones de seguridad SCED y recorte renovable)</em></li>",
-        f"      <li><strong>{html.escape(CHILEAN_LEGAL_FRAMEWORK['NTSYCS-N1-EDAC']['code'])}</strong> ({html.escape(CHILEAN_LEGAL_FRAMEWORK['NTSYCS-N1-EDAC']['title'])}):<br>{html.escape(CHILEAN_LEGAL_FRAMEWORK['NTSYCS-N1-EDAC']['principle'])}<br><em>Cita: Norma Técnica de Seguridad y Calidad de Servicio (NTSyCS - CNE) (Estados Normal, Alerta, Emergencia y Recuperación; criterio N-1 y EDAC)</em></li>",
-        f"      <li><strong>{html.escape(CHILEAN_LEGAL_FRAMEWORK['LEY-21505-SAE']['code'])}</strong> ({html.escape(CHILEAN_LEGAL_FRAMEWORK['LEY-21505-SAE']['title'])}):<br>{html.escape(CHILEAN_LEGAL_FRAMEWORK['LEY-21505-SAE']['principle'])}<br><em>Cita: Ley N° 21.505 / DS N° 70/2023 (Sistemas de Almacenamiento de Energía BESS)</em></li>",
-        "    </ol>",
-        "    <h4>Fuentes Regulatorias y Enlaces Oficiales:</h4>",
-        "    <ul>",
-    ])
+    out.extend(
+        [
+            "      </tbody>",
+            "    </table>",
+            "    <h4>Supuestos Económicos y Operativos (<code>session.catalog.assumptions</code>):</h4>",
+            "    <ul>",
+            "      <li><code>households_per_mw</code>: <code>1000</code> (<code>assumption</code>)</li>",
+            f"      <li><code>voll_usd_per_mwh</code>: <code>${ctx['assumptions'].get('voll_usd_per_mwh', 10000.0):,.2f} USD/MWh</code> (<code>assumption</code>)</li>",
+            f"      <li><code>demand_response_cost_usd_per_mwh</code>: <code>${ctx['assumptions'].get('demand_response_cost_usd_per_mwh', 300.0):,.2f} USD/MWh</code> (<code>assumption</code>)</li>",
+            f"      <li><code>hydro_water_value_usd_per_mwh</code>: <code>${ctx['assumptions'].get('hydro_water_value_usd_per_mwh', 120.0):,.2f} USD/MWh</code> (<code>assumption</code>)</li>",
+            "    </ul>",
+            "  </section>",
+            "",
+            '  <section id="marco-regulatorio">',
+            "    <h3>Marco Regulatorio Chileno y Descargo de Responsabilidad</h3>",
+            "    <ol>",
+            f"      <li><strong>{html.escape(CHILEAN_LEGAL_FRAMEWORK['LGSE-ART-72-1']['code'])}</strong> ({html.escape(CHILEAN_LEGAL_FRAMEWORK['LGSE-ART-72-1']['title'])}):<br>{html.escape(CHILEAN_LEGAL_FRAMEWORK['LGSE-ART-72-1']['principle'])}<br><em>Cita: LGSE DFL N° 4/2006 Art. 72°-1 (Coordinación segura y a mínimo costo del SEN)</em></li>",
+            f"      <li><strong>{html.escape(CHILEAN_LEGAL_FRAMEWORK['DS-32-2026-ART-117-BIS']['code'])}</strong> ({html.escape(CHILEAN_LEGAL_FRAMEWORK['DS-32-2026-ART-117-BIS']['title'])}):<br>{html.escape(CHILEAN_LEGAL_FRAMEWORK['DS-32-2026-ART-117-BIS']['principle'])}<br><em>Cita: DS N° 32/2026 Art. 117 bis (Despacho económico con restricciones de seguridad SCED y recorte renovable)</em></li>",
+            f"      <li><strong>{html.escape(CHILEAN_LEGAL_FRAMEWORK['NTSYCS-N1-EDAC']['code'])}</strong> ({html.escape(CHILEAN_LEGAL_FRAMEWORK['NTSYCS-N1-EDAC']['title'])}):<br>{html.escape(CHILEAN_LEGAL_FRAMEWORK['NTSYCS-N1-EDAC']['principle'])}<br><em>Cita: Norma Técnica de Seguridad y Calidad de Servicio (NTSyCS - CNE) (Estados Normal, Alerta, Emergencia y Recuperación; criterio N-1 y EDAC)</em></li>",
+            f"      <li><strong>{html.escape(CHILEAN_LEGAL_FRAMEWORK['LEY-21505-SAE']['code'])}</strong> ({html.escape(CHILEAN_LEGAL_FRAMEWORK['LEY-21505-SAE']['title'])}):<br>{html.escape(CHILEAN_LEGAL_FRAMEWORK['LEY-21505-SAE']['principle'])}<br><em>Cita: Ley N° 21.505 / DS N° 70/2023 (Sistemas de Almacenamiento de Energía BESS)</em></li>",
+            "    </ol>",
+            "    <h4>Fuentes Regulatorias y Enlaces Oficiales:</h4>",
+            "    <ul>",
+        ]
+    )
 
     for src in CHILEAN_REGULATORY_SOURCES:
         src_esc = html.escape(src)
-        out.append(f"      <li><a href=\"{src_esc}\" target=\"_blank\" rel=\"noreferrer\">{src_esc}</a></li>")
+        out.append(
+            f'      <li><a href="{src_esc}" target="_blank" rel="noreferrer">{src_esc}</a></li>'
+        )
 
-    out.extend([
-        "    </ul>",
-        "    <div class=\"disclaimer-box\">",
-        f"      <strong>Estado de Cumplimiento Legal: <code>{html.escape(LEGAL_DISCLAIMER_STATUS)}</code></strong><br>",
-        f"      {html.escape(LEGAL_DISCLAIMER_TEXT)}",
-        "    </div>",
-        "  </section>",
-        "</div>",
-        "</body>",
-        "</html>",
-    ])
+    out.extend(
+        [
+            "    </ul>",
+            '    <div class="disclaimer-box">',
+            f"      <strong>Estado de Cumplimiento Legal: <code>{html.escape(LEGAL_DISCLAIMER_STATUS)}</code></strong><br>",
+            f"      {html.escape(LEGAL_DISCLAIMER_TEXT)}",
+            "    </div>",
+            "  </section>",
+            "</div>",
+            "</body>",
+            "</html>",
+        ]
+    )
 
     return "\n".join(out)
 

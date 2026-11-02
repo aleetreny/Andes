@@ -1,5 +1,4 @@
 import json
-import os
 import pytest
 import jsonschema
 from fastapi.testclient import TestClient
@@ -12,87 +11,91 @@ SCHEMA_PATH = "contracts/live.schema.json"
 with open(SCHEMA_PATH, "r", encoding="utf-8") as f:
     schema_json = json.load(f)
 
+
 def validate_data(data, schema_def):
-    jsonschema.validate(instance=data, schema={"$defs": schema_json.get("$defs", {}), "$ref": f"#/$defs/{schema_def}"})
+    jsonschema.validate(
+        instance=data,
+        schema={"$defs": schema_json.get("$defs", {}), "$ref": f"#/$defs/{schema_def}"},
+    )
+
 
 def test_get_catalog():
     response = client.get("/api/live/catalog")
     assert response.status_code == 200
     validate_data(response.json(), "Catalog")
 
+
 def test_session_creation_and_stream():
     resp = client.post("/api/live/sessions", json={"session_id": "test_session_1"})
     assert resp.status_code == 202
     data = resp.json()
     assert "session_id" in data
-    
+
     session_id = data["session_id"]
-    
+
     stream_resp = client.get(f"/api/live/sessions/{session_id}/stream?max_events=1")
     assert stream_resp.status_code == 200
     text = stream_resp.text
     assert text.startswith("data: ")
-    
+
     event_str = text.split("\n\n")[0][6:]
     event_data = json.loads(event_str)
-    
+
     assert event_data["type"] == "session.snapshot"
     validate_data(event_data, "LiveEvent")
+
 
 def test_disrupt_decide_autonomy_clock_reset():
     session_id = "test_session_actions"
     client.post("/api/live/sessions", json={"session_id": session_id})
-    
-    resp = client.post(f"/api/live/sessions/{session_id}/disrupt", json={
-        "asset_id": "gas_centro",
-        "duration_h": 4,
-        "wait_for_options": True
-    })
+
+    resp = client.post(
+        f"/api/live/sessions/{session_id}/disrupt",
+        json={"asset_id": "gas_centro", "duration_h": 4, "wait_for_options": True},
+    )
     assert resp.status_code == 202
     res_data = resp.json()
     assert res_data["accepted"] is True
-    
-    resp = client.post(f"/api/live/sessions/{session_id}/clock", json={
-        "action": "play"
-    })
+
+    resp = client.post(f"/api/live/sessions/{session_id}/clock", json={"action": "play"})
     assert resp.status_code == 202
-    
-    resp = client.post(f"/api/live/sessions/{session_id}/autonomy", json={
-        "enabled": True
-    })
+
+    resp = client.post(f"/api/live/sessions/{session_id}/autonomy", json={"enabled": True})
     assert resp.status_code == 202
-    
+
     resp = client.post(f"/api/live/sessions/{session_id}/reset")
     assert resp.status_code == 202
+
 
 def test_jury_disrupt():
     session_id = "test_session_jury"
     client.post("/api/live/sessions", json={"session_id": session_id})
     client.post(f"/api/live/sessions/{session_id}/reset")
-    
-    resp1 = client.post(f"/api/live/sessions/{session_id}/jury/disrupt", json={
-        "asset_id": "gas_centro",
-        "device_id": "dev1"
-    })
+
+    resp1 = client.post(
+        f"/api/live/sessions/{session_id}/jury/disrupt",
+        json={"asset_id": "gas_centro", "device_id": "dev1"},
+    )
     assert resp1.status_code == 202
-    
-    resp2 = client.post(f"/api/live/sessions/{session_id}/jury/disrupt", json={
-        "asset_id": "gas_centro",
-        "device_id": "dev1"
-    })
+
+    resp2 = client.post(
+        f"/api/live/sessions/{session_id}/jury/disrupt",
+        json={"asset_id": "gas_centro", "device_id": "dev1"},
+    )
     assert resp2.status_code == 429
-    
-    resp3 = client.post(f"/api/live/sessions/{session_id}/jury/disrupt", json={
-        "asset_id": "L1",
-        "device_id": "dev2"
-    })
+
+    resp3 = client.post(
+        f"/api/live/sessions/{session_id}/jury/disrupt",
+        json={"asset_id": "L1", "device_id": "dev2"},
+    )
     assert resp3.status_code == 202
-    
-    resp4 = client.post(f"/api/live/sessions/{session_id}/jury/disrupt", json={
-        "asset_id": "L2",
-        "device_id": "dev3"
-    })
+
+    resp4 = client.post(
+        f"/api/live/sessions/{session_id}/jury/disrupt",
+        json={"asset_id": "L2", "device_id": "dev3"},
+    )
     assert resp4.status_code == 409
+
 
 def test_qr_code():
     session_id = "test_session_qr"
@@ -114,7 +117,9 @@ def test_operational_levers_only_in_crisis():
 
     # Verify tool declaration enum only contains operational lever types
     sim_tool = next(d for d in LIVE_DECIDER_TOOLS if d["name"] == "simulate_plan")
-    enum_types = sim_tool["parameters"]["properties"]["levers"]["items"]["properties"]["type"]["enum"]
+    enum_types = sim_tool["parameters"]["properties"]["levers"]["items"]["properties"]["type"][
+        "enum"
+    ]
     assert tuple(enum_types) == OPERATIONAL_LEVER_TYPES
     assert "add_battery" not in enum_types
     assert "uprate_line" not in enum_types
@@ -122,7 +127,9 @@ def test_operational_levers_only_in_crisis():
     # Verify crisis candidate generator only produces operational levers
     with open(FIXTURE_PATH, encoding="utf-8") as f:
         scenario = json.load(f)
-    cands = generate_operational_candidates(scenario, active_disruptions=[], from_hour=18, to_hour=22)
+    cands = generate_operational_candidates(
+        scenario, active_disruptions=[], from_hour=18, to_hour=22
+    )
     assert len(cands) > 0
     for c in cands:
         for lv in c["levers"]:
@@ -149,7 +156,9 @@ def test_pairwise_tradeoff_tag_truthfulness():
         "title_es": "Opción A",
         "tradeoff_tag": "min_costo",  # Contradicted: cost is higher than opt_b!
         "rationale_es": "Racional A",
-        "levers": [{"type": "demand_response", "target_id": "n_centro", "params": {"max_mw": 200.0}}],
+        "levers": [
+            {"type": "demand_response", "target_id": "n_centro", "params": {"max_mw": 200.0}}
+        ],
         "metrics": {
             "households_reconnected": 342900,
             "households_newly_off": 0,
@@ -166,7 +175,13 @@ def test_pairwise_tradeoff_tag_truthfulness():
         "title_es": "Opción B",
         "tradeoff_tag": "max_hogares",  # Contradicted: households_reconnected is lower than opt_a!
         "rationale_es": "Racional B",
-        "levers": [{"type": "activate_reserve_bess", "target_id": "b_reserve_centro", "params": {"power_mw": 150.0}}],
+        "levers": [
+            {
+                "type": "activate_reserve_bess",
+                "target_id": "b_reserve_centro",
+                "params": {"power_mw": 150.0},
+            }
+        ],
         "metrics": {
             "households_reconnected": 212400,
             "households_newly_off": 0,
@@ -221,7 +236,13 @@ def test_zero_improvement_guardrails_and_autonomy():
         "title_es": "Maniobra Efectiva",
         "tradeoff_tag": "max_hogares",
         "rationale_es": "Reconecta hogares",
-        "levers": [{"type": "activate_reserve_bess", "target_id": "b_reserve_centro", "params": {"power_mw": 150.0}}],
+        "levers": [
+            {
+                "type": "activate_reserve_bess",
+                "target_id": "b_reserve_centro",
+                "params": {"power_mw": 150.0},
+            }
+        ],
         "metrics": {
             "households_reconnected": 150000,
             "households_newly_off": 0,
@@ -303,6 +324,7 @@ def test_impact_preview_endpoint_and_cache():
 
     # Verify cache entry was stored for (session_id, 18, ())
     from backend.live.engine import SESSION_MANAGER
+
     ses = SESSION_MANAGER.get(session_id)
     assert ses is not None
     assert (session_id, 18, ()) in ses._impact_preview_cache
@@ -315,7 +337,9 @@ def test_impact_preview_endpoint_and_cache():
     assert len(ses._impact_preview_cache) == 1
 
     # Adding an active disruption changes the cache key and increases or updates stacked impact
-    client.post(f"/api/live/sessions/{session_id}/disrupt", json={"asset_id": "gas_centro", "duration_h": 4})
+    client.post(
+        f"/api/live/sessions/{session_id}/disrupt", json={"asset_id": "gas_centro", "duration_h": 4}
+    )
     r3 = client.get(f"/api/live/sessions/{session_id}/impact_preview")
     assert r3.status_code == 200
     assert len(ses._impact_preview_cache) == 2
@@ -362,6 +386,3 @@ def test_public_origin_and_cors_sse():
         headers={"Origin": "https://evil.example.com"},
     )
     assert r_evil.headers.get("access-control-allow-origin") is None
-
-
-

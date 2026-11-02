@@ -21,12 +21,10 @@ import logging
 import math
 import time
 import uuid
-from pathlib import Path
 from typing import Any, NamedTuple
 
 from backend.live import monitor
 from backend.live.agent_loop import (
-    ASSET_NAMES_ES,
     compute_grid_state,
     compute_incident_impact,
     get_api_key,
@@ -78,7 +76,9 @@ class LiveSession:
         countdown_step_s: float = 1.0,
     ) -> None:
         self.session_id = session_id
-        self.scenario = copy.deepcopy(scenario) if scenario is not None else load_scenario(scenario_path())
+        self.scenario = (
+            copy.deepcopy(scenario) if scenario is not None else load_scenario(scenario_path())
+        )
         self.catalog = build_catalog(self.scenario)
         self.hour: float = float(max(0.0, min(23.99, start_hour)))
         self.running: bool = False
@@ -216,9 +216,13 @@ class LiveSession:
             return "battery_outage"
         raise ValueError(f"Activo desconocido: {asset_id!r}")
 
-    def _solve_current_state(self, solution_id: str, include_applied_levers: bool = True) -> dict[str, Any]:
+    def _solve_current_state(
+        self, solution_id: str, include_applied_levers: bool = True
+    ) -> dict[str, Any]:
         """Solve and validate the current network state with all `active_events` and optionally `applied_levers`."""
-        scen_for_solve, solver_events = prepare_scenario_and_events(self.scenario, self.active_events)
+        scen_for_solve, solver_events = prepare_scenario_and_events(
+            self.scenario, self.active_events
+        )
         cand = None
         if include_applied_levers and self.applied_levers:
             mods = [lever_to_solver_mod(lv) for lv in self.applied_levers[:2]]
@@ -369,7 +373,9 @@ class LiveSession:
         if not api_key:
             try:
                 self._emit_monitor_payload(
-                    monitor.deterministic_note(assessment, grid_state=self.grid_state, status="no_key")
+                    monitor.deterministic_note(
+                        assessment, grid_state=self.grid_state, status="no_key"
+                    )
                 )
             except Exception:  # same guard as the assessment: the clock outlives a wording bug
                 logger.exception("monitor: could not emit the deterministic note")
@@ -383,9 +389,14 @@ class LiveSession:
             self._run_monitor(self._current_monitor_job(assessment), api_key)
         )
 
-    def _current_monitor_job(self, assessment: monitor.MonitorAssessment | None = None) -> _MonitorJob:
+    def _current_monitor_job(
+        self, assessment: monitor.MonitorAssessment | None = None
+    ) -> _MonitorJob:
         return _MonitorJob(
-            assessment or self._assess_monitor(), self.hour, self.grid_state, copy.deepcopy(self.active_events)
+            assessment or self._assess_monitor(),
+            self.hour,
+            self.grid_state,
+            copy.deepcopy(self.active_events),
         )
 
     async def _run_monitor(self, job: _MonitorJob | None, api_key: str) -> None:
@@ -420,7 +431,9 @@ class LiveSession:
                     job = self._current_monitor_job()
         except asyncio.CancelledError:
             raise
-        except Exception:  # a failed note must never take the session down; the next hour tries again
+        except (
+            Exception
+        ):  # a failed note must never take the session down; the next hour tries again
             logger.exception("monitor: background note failed")
 
     def _emit_monitor_payload(self, payload: dict[str, Any]) -> dict[str, Any]:
@@ -430,7 +443,11 @@ class LiveSession:
     def emit_note(self, custom_text_es: str) -> dict[str, Any]:
         """Emit an immediate digit-free `agent.note` with the given text (periodic kind: not a monitor reading)."""
         return self._emit(
-            {"type": "agent.note", "text_es": sanitize_no_digits(custom_text_es), "kind": "periodic"}
+            {
+                "type": "agent.note",
+                "text_es": sanitize_no_digits(custom_text_es),
+                "kind": "periodic",
+            }
         )
 
     def check_jury_limits(self, device_key: str) -> None:
@@ -475,7 +492,11 @@ class LiveSession:
 
             dtype = self._resolve_asset_type(asset_id, explicit_type)
             dur = max(1, min(6, int(duration_h or 4)))
-            fh = int(from_hour_override) if from_hour_override is not None else int(math.floor(self.hour))
+            fh = (
+                int(from_hour_override)
+                if from_hour_override is not None
+                else int(math.floor(self.hour))
+            )
             fh = max(0, min(22, fh))
             th = max(fh + 2, min(24, fh + dur))
 
@@ -493,9 +514,9 @@ class LiveSession:
                 disruption["jury_name"] = mod_name
 
             # Stack disruption if same asset isn't already outaged in the same window
-            self.active_events = [
-                e for e in self.active_events if e["asset_id"] != asset_id
-            ] + [disruption]
+            self.active_events = [e for e in self.active_events if e["asset_id"] != asset_id] + [
+                disruption
+            ]
 
             incident_id = f"inc_{asset_id}_{fh}_{uuid.uuid4().hex[:4]}"
             self.current_incident_id = incident_id
@@ -664,7 +685,11 @@ class LiveSession:
             cur = asyncio.current_task()
         except RuntimeError:
             cur = None
-        if self._countdown_task and not self._countdown_task.done() and self._countdown_task is not cur:
+        if (
+            self._countdown_task
+            and not self._countdown_task.done()
+            and self._countdown_task is not cur
+        ):
             self._countdown_task.cancel()
         self._countdown_task = None
 
@@ -970,19 +995,14 @@ class LiveSession:
             ts = raw_sol.get("timeseries") or {}
             raw_unserved = ts.get("unserved_mw") or {}
             unserved_mw = {
-                nid: [round(float(x), 4) for x in raw_unserved.get(nid, [0.0] * T)]
-                for nid in nodes
+                nid: [round(float(x), 4) for x in raw_unserved.get(nid, [0.0] * T)] for nid in nodes
             }
             households_off = {
                 nid: [round(unserved_mw[nid][h] * hh_per_mw[nid]) for h in range(T)]
                 for nid in nodes
             }
-            unserved_by_h = [
-                sum(float(unserved_mw[n][h]) for n in nodes) for h in range(T)
-            ]
-            hh_by_h = [
-                sum(float(households_off[n][h]) for n in nodes) for h in range(T)
-            ]
+            unserved_by_h = [sum(float(unserved_mw[n][h]) for n in nodes) for h in range(T)]
+            hh_by_h = [sum(float(households_off[n][h]) for n in nodes) for h in range(T)]
             unserved_peak = round(max(unserved_by_h, default=0.0), 2)
             hh_peak = int(round(max(hh_by_h, default=0.0)))
             return {

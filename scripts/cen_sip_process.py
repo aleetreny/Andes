@@ -43,17 +43,28 @@ def day(date):
     by_tech = defaultdict(lambda: [0.0] * 24)
     for r in rows(f"generacion-real/{date}"):
         i = hour_index(r["hora"])
-        p = plants.setdefault(r["id_central"], {
-            "id_central": r["id_central"], "name": r["central"],
-            "technology": r["tipo_tecnologia"], "subtechnology": r.get("subtipo_tecnologia"),
-            "pmax_mw": float(r["potencia_maxima"]) if r.get("potencia_maxima") not in (None, "") else None,
-            "mw": [0.0] * 24,
-        })
+        p = plants.setdefault(
+            r["id_central"],
+            {
+                "id_central": r["id_central"],
+                "name": r["central"],
+                "technology": r["tipo_tecnologia"],
+                "subtechnology": r.get("subtipo_tecnologia"),
+                "pmax_mw": float(r["potencia_maxima"])
+                if r.get("potencia_maxima") not in (None, "")
+                else None,
+                "mw": [0.0] * 24,
+            },
+        )
         mw = float(r["gen_real_mw"] or 0)
         p["mw"][i] += mw
         by_tech[r["tipo_tecnologia"]][i] += mw
 
-    system = {"gen_bruta_mwh": [None] * 24, "demanda_neta_mwh": [None] * 24, "gen_erv_mwh": [None] * 24}
+    system = {
+        "gen_bruta_mwh": [None] * 24,
+        "demanda_neta_mwh": [None] * 24,
+        "gen_erv_mwh": [None] * 24,
+    }
     for r in rows(f"demanda-neta/{date}"):
         i = hour_index(r["hora"])
         for k in system:
@@ -66,7 +77,9 @@ def day(date):
         "timezone": "America/Santiago (SIP hour labels 1–24, hour ending)",
         "system": system,
         "generation_total_mw": total,
-        "generation_by_technology_mw": {k: [round(x, 1) for x in v] for k, v in sorted(by_tech.items())},
+        "generation_by_technology_mw": {
+            k: [round(x, 1) for x in v] for k, v in sorted(by_tech.items())
+        },
         "plants": sorted(
             ({**p, "mw": [round(x, 2) for x in p["mw"]]} for p in plants.values() if any(p["mw"])),
             key=lambda p: -max(p["mw"]),
@@ -79,14 +92,25 @@ def main():
     for folder in sorted((RAW / "generacion-real").iterdir()):
         if (RAW / "demanda-neta" / folder.name).exists():
             data = day(folder.name)
-            (OUT / f"day-{folder.name}.json").write_text(json.dumps(data, ensure_ascii=False) + "\n")
-            print(f"day-{folder.name}: {len(data['plants'])} plants, peak {max(data['generation_total_mw'])} MW")
+            (OUT / f"day-{folder.name}.json").write_text(
+                json.dumps(data, ensure_ascii=False) + "\n"
+            )
+            print(
+                f"day-{folder.name}: {len(data['plants'])} plants, peak {max(data['generation_total_mw'])} MW"
+            )
     sums = {}
     for folder in sorted((RAW / "daily-sum").glob("*")):
-        (data,) = [json.loads(gzip.decompress(p.read_bytes())) for p in folder.glob("page-*.json.gz")]
+        (data,) = [
+            json.loads(gzip.decompress(p.read_bytes())) for p in folder.glob("page-*.json.gz")
+        ]
         sums[folder.name] = {d["key"]: d["value"] for d in data["data"]}
     if sums:
-        (OUT / "daily-sums.json").write_text(json.dumps({**SOURCE, "unit": "MWh per day", "days": sums}, ensure_ascii=False, indent=1) + "\n")
+        (OUT / "daily-sums.json").write_text(
+            json.dumps(
+                {**SOURCE, "unit": "MWh per day", "days": sums}, ensure_ascii=False, indent=1
+            )
+            + "\n"
+        )
         print(f"daily-sums: {len(sums)} days")
 
 

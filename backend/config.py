@@ -14,7 +14,9 @@ class Settings:
         default_factory=lambda: Path(os.getenv("GRIDPILOT_DB_PATH", ROOT / "var/runs.sqlite3"))
     )
     public_origin: str = field(
-        default_factory=lambda: os.getenv("PUBLIC_ORIGIN", "https://andes-a38.pages.dev").rstrip("/")
+        default_factory=lambda: os.getenv("PUBLIC_ORIGIN", "https://andes-a38.pages.dev").rstrip(
+            "/"
+        )
     )
     cors_origins: list[str] = field(
         default_factory=lambda: [
