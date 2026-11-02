@@ -551,8 +551,9 @@ def test_examples_match_current_code():
         stored = json.loads((demo.EXAMPLES / f"{name}.json").read_text())
         diffs = _differences(stored, json.loads(json.dumps(demo.stable(data))))
         # Degenerate LPs (the south battery in the sudden outage) have several optimal hourly
-        # dispatches; HiGHS picks a different one per platform with the same objective and metrics.
-        diffs = [d for d in diffs if not d.startswith(".timeseries.")]
+        # dispatches; HiGHS picks a different one per platform with the same objective and metrics,
+        # so the hourly series and the hours each constraint binds may differ.
+        diffs = [d for d in diffs if not d.startswith((".timeseries.", ".binding_constraints["))]
         assert not diffs, (
             f"examples/{name}.json is stale at {diffs[:5]}: run python -m optimisation.demo --write")
     # every exported case is a real, validated solution
