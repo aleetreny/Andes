@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import type { useLiveSession } from '../live/store';
 import type { Option } from '../live/types';
 import { fmtInt, planName, recipe } from './plain';
-import { PORTFOLIO_MODE } from '../portfolio';
+import { PORTFOLIO_MODE, sitePath } from '../portfolio';
 
 // Gemini's side panel tells one thing at a time, in plain words: how the grid is, what Gemini is
 // doing, which plan to pick, or what the applied plan is restoring. Every number comes from the solver.
@@ -38,7 +38,7 @@ export function GeminiPanel({ state, deciding, applied, planBy, homesOff, onHove
         <b>{PORTFOLIO_MODE ? 'Recovery replay' : 'Gemini'}</b>
         <span>{status}</span>
       </header>
-      {PORTFOLIO_MODE && <p className="gp-pnl-note">Precomputed solver results · no Google API. Each outage opens a separate four-hour case at the nearest recorded hour. <a href="/about">How this demo works</a></p>}
+      {PORTFOLIO_MODE && <p className="gp-pnl-note">Precomputed solver results · no Google API. Each outage opens a separate four-hour case at the nearest recorded hour. <a href={sitePath('about')}>How this demo works</a></p>}
       <div key={deciding ? 'choose' : phase} className="gp-pnl-body">{body}</div>
     </aside>
   );

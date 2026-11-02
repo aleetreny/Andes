@@ -188,7 +188,7 @@ export class OfflineSessionController {
   async injectCrisis(assetId: string, juryName?: string): Promise<void> {
     const nearestHour = this.getClosestLibraryHour(this.simHour);
     try {
-      const res = await fetch(`/incidents/${assetId}_${nearestHour}.jsonl`);
+      const res = await fetch(`${import.meta.env?.BASE_URL || '/'}incidents/${assetId}_${nearestHour}.jsonl`);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const text = await res.text();
       const lines = text.split('\n').filter(l => l.trim().length > 0);

@@ -39,10 +39,20 @@ in live mode. Recorded prose is historical output, not a fresh Gemini response.
 
 ## Preservation
 
-Tag `portfolio-original-published-2026-10-25` points to `1494129`, the latest published hackathon
-version used as the base for this edition. No original feature branch was changed.
-Solver, validator, Google adapter, backend,
-reports, provenance and Git authorship remain intact.
+Tag `portfolio-original-published-2026-10-25` points to the latest published hackathon
+version used as the base for this edition, and `portfolio-hackathon-2026-10-25` to the
+version shown on the day. Solver, validator, Google adapter, backend, reports, provenance
+and Git authorship remain intact on `main`.
 
-A historical demonstration video can be linked from `/about` when an actual recording
-is available. No video or personal contribution claims have been invented.
+## Publishing
+
+`.github/workflows/pages.yml` publishes the demo to GitHub Pages on every push to `main`
+that touches `frontend/`. It verifies the recorded outage cases, builds with
+`--base=/Andes/` so assets and routes resolve under the project subpath, and copies
+`index.html` to `404.html` so deep links such as `/Andes/about` load the app.
+
+To build the same bundle locally:
+
+```sh
+npm run build:portfolio --prefix frontend -- --base=/Andes/
+```

@@ -8,7 +8,7 @@ import { GeminiPanel } from './GeminiPanel';
 import { planName, recipe } from './plain';
 import { Tour } from './Tour';
 import './ui.css';
-import { PORTFOLIO_MODE } from '../portfolio';
+import { PORTFOLIO_MODE, sitePath } from '../portfolio';
 
 const API_BASE = import.meta.env?.VITE_API_BASE_URL || '/api';
 
@@ -399,7 +399,7 @@ function Screen() {
           <span /> Autonomous mode
         </label>
         {connectionMode === 'offline' && <button className="gp-btn is-ghost" onClick={() => actions.replayOfflineDemo()}>Replay session</button>}
-        {PORTFOLIO_MODE ? <a className="gp-btn is-ghost" href="/about">About this project</a> : <button className="gp-btn is-ghost" onClick={() => setInvite(true)}>Invite the jury</button>}
+        {PORTFOLIO_MODE ? <a className="gp-btn is-ghost" href={sitePath('about')}>About this project</a> : <button className="gp-btn is-ghost" onClick={() => setInvite(true)}>Invite the jury</button>}
         <span className="gp-hint">Tap a plant or a line for details or to trigger an outage.</span>
       </footer>
     </div>

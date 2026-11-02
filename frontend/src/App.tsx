@@ -5,7 +5,7 @@ import { DevConsole } from './live/DevConsole';
 import { LiveOps } from './ui/LiveOps';
 import { Jury } from './ui/Jury';
 import { About } from './ui/About';
-import { PORTFOLIO_MODE } from './portfolio';
+import { BASE_URL, PORTFOLIO_MODE } from './portfolio';
 
 export function App() {
   const [pathname, setPathname] = useState<string>(() => {
@@ -23,7 +23,9 @@ export function App() {
     return () => window.removeEventListener('popstate', handlePopState);
   }, []);
 
-  const normalizedPath = pathname.replace(/\/+$/, '') || '/';
+  // Routes are relative to the site root, so the app also works from a subpath such as /Andes/.
+  const routePath = pathname.startsWith(BASE_URL) ? '/' + pathname.slice(BASE_URL.length) : pathname;
+  const normalizedPath = routePath.replace(/\/+$/, '') || '/';
 
   if (normalizedPath === '/about' || (PORTFOLIO_MODE && normalizedPath !== '/')) return <About />;
 
