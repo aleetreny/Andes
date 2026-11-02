@@ -520,6 +520,24 @@ def test_validate_rejects_solution_solved_with_other_options():
     assert "options_consistent" in {v["check"] for v in strict["violations"]}
 
 
+def _differences(stored, current, path="", tol=1e-4):
+    """Paths where two JSON documents differ, allowing HiGHS round-off across platforms."""
+    if isinstance(stored, bool) or isinstance(current, bool):
+        return [] if stored == current else [path]
+    if isinstance(stored, (int, float)) and isinstance(current, (int, float)):
+        return [] if abs(stored - current) <= tol * max(1.0, abs(stored)) else [path]
+    if isinstance(stored, dict) and isinstance(current, dict):
+        if stored.keys() != current.keys():
+            return [path]
+        return [d for k in stored for d in _differences(stored[k], current[k], f"{path}.{k}", tol)]
+    if isinstance(stored, list) and isinstance(current, list):
+        if len(stored) != len(current):
+            return [path]
+        return [d for i, (a, b) in enumerate(zip(stored, current))
+                for d in _differences(a, b, f"{path}[{i}]", tol)]
+    return [] if stored == current else [path]
+
+
 def test_examples_match_current_code():
     """optimisation/examples/*.json must be regenerated whenever outputs change."""
     import contextlib
@@ -531,8 +549,9 @@ def test_examples_match_current_code():
         results = demo.run(write=False)
     for name, data in results.items():
         stored = json.loads((demo.EXAMPLES / f"{name}.json").read_text())
-        assert stored == json.loads(json.dumps(demo.stable(data))), (
-            f"examples/{name}.json is stale: run python -m optimisation.demo --write")
+        diffs = _differences(stored, json.loads(json.dumps(demo.stable(data))))
+        assert not diffs, (
+            f"examples/{name}.json is stale at {diffs[:5]}: run python -m optimisation.demo --write")
     # every exported case is a real, validated solution
     index = results["index"]["situations"]
     assert set(index) == {"normal", "sudden_outage", "planned_maintenance"}
